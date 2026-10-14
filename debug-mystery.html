@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Детектив Помилок: Врятуй Архів Мудрості!</title>
+<style>
+:root{
+  --text:#f4f0ff;
+  --muted:#c9bde3;
+  --green:#5ee05e;
+  --green-d:#1f6f1f;
+  --amethyst:#b57cf2;
+  --amethyst-d:#5b2f8f;
+  --red:#ff5a5a;
+  --gold:#ffd84a;
+  --cyan:#4de1ff;
+  --font:"Minecraft","Minecraftia","Monocraft","Courier New",ui-monospace,monospace;
+  --block-font:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{font-size:18px}
+body{
+  margin:0;min-height:100vh;color:var(--text);font-family:var(--font);font-weight:700;
+  background-color:#0b0910;
+  background-image:
+    radial-gradient(ellipse at 50% -10%,rgba(150,80,230,.30),transparent 60%),
+    radial-gradient(ellipse at 100% 100%,rgba(60,200,90,.10),transparent 50%),
+    linear-gradient(rgba(8,6,12,.80),rgba(8,6,12,.90)),
+    var(--tex-deepslate);
+  background-size:auto,auto,auto,96px 96px;
+  image-rendering:pixelated;
+  text-shadow:2px 2px 0 #000;
+  overflow-x:hidden;
+}
+button{font-family:inherit}
+
+/* ===== Particles in background ===== */
+.sparks{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.spark{position:absolute;bottom:-20px;width:8px;height:8px;background:var(--amethyst);box-shadow:0 0 10px var(--amethyst);opacity:.0;animation:rise linear infinite}
+.spark.g{background:var(--green);box-shadow:0 0 10px var(--green)}
+@keyframes rise{0%{transform:translate(0,0);opacity:0}10%{opacity:.8}100%{transform:translate(var(--dx),-110vh);opacity:0}}
+
+.wrap{position:relative;z-index:1;max-width:1800px;margin:0 auto}
+
+/* ===== Header ===== */
+header{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 24px;border-bottom:4px solid #000;
+  background:linear-gradient(rgba(34,20,54,.86),rgba(18,11,30,.92)),var(--tex-obsidian);
+  background-size:auto,64px 64px;
+  box-shadow:0 4px 0 #3b2a5a,0 10px 30px rgba(0,0,0,.6);
+}
+h1{margin:0;font-size:2.15rem;line-height:1.15;color:#fff;
+  text-shadow:3px 3px 0 #3f1f6b,0 0 18px rgba(181,124,242,.65);animation:titleGlow 3s ease-in-out infinite}
+@keyframes titleGlow{50%{text-shadow:3px 3px 0 #3f1f6b,0 0 30px rgba(181,124,242,.95)}}
+.sub{color:var(--green);font-size:1rem;margin-top:6px}
+.hud{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.counter{display:flex;align-items:center;gap:12px;padding:10px 16px;border:3px solid #000;
+  background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.65)),var(--tex-stone);background-size:auto,48px;
+  box-shadow:inset 3px 3px 0 rgba(255,255,255,.15),inset -3px -3px 0 rgba(0,0,0,.5);font-size:1.15rem}
+.counter b{color:var(--gold);font-size:1.5rem}
+.counter.bump{animation:bump .6s}
+@keyframes bump{30%{transform:scale(1.18)}60%{transform:scale(.95)}}
+.slots{display:flex;gap:6px}
+.slot{width:32px;height:32px;border:3px solid #000;background-size:cover;image-rendering:pixelated;filter:grayscale(1) brightness(.45)}
+.slot.on{filter:none;box-shadow:0 0 12px var(--amethyst),0 0 0 2px var(--amethyst);animation:pop .5s}
+
+/* ===== Minecraft buttons ===== */
+.mc-btn{
+  font-family:var(--font);font-weight:700;font-size:1.05rem;color:#fff;text-shadow:2px 2px 0 #3f3f3f;cursor:pointer;
+  padding:12px 18px;border:3px solid #000;image-rendering:pixelated;
+  background:linear-gradient(rgba(120,120,120,.35),rgba(60,60,60,.45)),var(--tex-stone);background-size:auto,48px;
+  box-shadow:inset 3px 3px 0 rgba(255,255,255,.38),inset -3px -4px 0 rgba(0,0,0,.45);
+  transition:transform .08s,filter .15s;
+}
+.mc-btn:hover{color:#ffffa0;filter:brightness(1.15);outline:3px solid #fff;outline-offset:-3px}
+.mc-btn:active{transform:translateY(3px);box-shadow:inset -3px -3px 0 rgba(255,255,255,.25),inset 3px 4px 0 rgba(0,0,0,.45)}
+.mc-btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(1)}
+.mc-btn.small{padding:8px 12px;font-size:1rem}
+
+.btn-run{
+  font-size:1.75rem;padding:20px 46px;
+  background:linear-gradient(rgba(80,220,80,.78),rgba(28,140,28,.88)),var(--tex-stone);background-size:auto,48px;
+  border:4px solid #000;
+  box-shadow:inset 4px 4px 0 rgba(255,255,255,.45),inset -4px -5px 0 rgba(0,0,0,.4),0 0 0 3px #1f5f1f,0 0 30px rgba(94,224,94,.55);
+  animation:runPulse 1.8s ease-in-out infinite;
+}
+@keyframes runPulse{50%{box-shadow:inset 4px 4px 0 rgba(255,255,255,.45),inset -4px -5px 0 rgba(0,0,0,.4),0 0 0 3px #2f8f2f,0 0 48px rgba(94,224,94,.9)}}
+.btn-hint{background:linear-gradient(rgba(240,190,40,.55),rgba(170,110,10,.7)),var(--tex-stone);background-size:auto,48px}
+.btn-next{background:linear-gradient(rgba(180,124,242,.7),rgba(90,40,150,.85)),var(--tex-stone);background-size:auto,48px;font-size:1.3rem;padding:16px 28px;animation:nextPulse 1.2s ease-in-out infinite}
+@keyframes nextPulse{50%{transform:scale(1.06);box-shadow:inset 3px 3px 0 rgba(255,255,255,.38),inset -3px -4px 0 rgba(0,0,0,.45),0 0 30px var(--amethyst)}}
+
+/* ===== Case tabs ===== */
+.cases{display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px 0}
+.case-tab{display:flex;align-items:center;gap:8px}
+.case-tab.active{outline:4px solid var(--amethyst);outline-offset:-4px;color:#fff;box-shadow:inset 3px 3px 0 rgba(255,255,255,.38),inset -3px -4px 0 rgba(0,0,0,.45),0 0 18px rgba(181,124,242,.7)}
+.case-tab.solved::after{content:"✔";color:var(--green);margin-left:4px}
+
+/* ===== Mission ===== */
+.mission{margin:16px 24px;display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:16px 20px;
+  border:4px solid #000;background:linear-gradient(rgba(22,16,34,.88),rgba(16,12,26,.94)),var(--tex-obsidian);background-size:auto,64px;
+  box-shadow:inset 0 0 0 3px #4a3570,0 0 26px rgba(181,124,242,.18)}
+.case-num{width:96px;height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid #000;
+  background:linear-gradient(rgba(70,30,120,.55),rgba(40,15,80,.7)),var(--tex-amethyst);background-size:auto,48px;font-size:.85rem;text-align:center;
+  box-shadow:0 0 18px rgba(181,124,242,.6)}
+.case-num span{font-size:2.4rem;line-height:1}
+.mission h2{margin:0 0 8px;font-size:1.6rem;color:var(--gold)}
+.mission p{margin:6px 0;font-size:1.08rem;line-height:1.45}
+.mission .lbl{color:var(--green)}
+details.teacher{margin-top:8px;font-size:.95rem;color:var(--muted)}
+details.teacher summary{cursor:pointer;color:#e6dcff}
+details.teacher div{margin-top:6px;padding:8px 12px;border:2px dashed #6b5a8c;background:rgba(0,0,0,.35)}
+
+/* ===== Main grid / panels ===== */
+.grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:20px;padding:0 24px}
+@media (max-width:1150px){.grid{grid-template-columns:1fr}}
+.panel{position:relative;border:4px solid #000;
+  background:linear-gradient(rgba(22,16,34,.9),rgba(14,10,22,.95)),var(--tex-obsidian);background-size:auto,64px;
+  box-shadow:inset 0 0 0 3px #4a3570,0 0 26px rgba(181,124,242,.2);overflow:hidden}
+.panel::before,.panel::after{content:"";position:absolute;top:6px;width:14px;height:14px;background:var(--tex-amethyst);background-size:14px;border:2px solid #000;z-index:3;animation:gem 2.4s ease-in-out infinite}
+.panel::before{left:6px}.panel::after{right:6px}
+@keyframes gem{50%{box-shadow:0 0 14px var(--amethyst)}}
+.panel-h{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 34px;
+  background:linear-gradient(rgba(70,35,115,.78),rgba(40,20,70,.88)),var(--tex-amethyst);background-size:auto,48px;border-bottom:4px solid #000;font-size:1.25rem}
+.badge{font-size:.95rem;padding:6px 10px;border:3px solid #000}
+.badge.bad{background:#7a1414;color:#ffd0d0;animation:badPulse 1.4s infinite}
+.badge.good{background:#1d6b1d;color:#d6ffd6}
+@keyframes badPulse{50%{background:#a81e1e}}
+.panel.shake{animation:shake .5s}
+@keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(6px)}30%,50%,70%{transform:translateX(-10px)}40%,60%{transform:translateX(10px)}}
+.panel.win{box-shadow:inset 0 0 0 3px var(--green),0 0 40px rgba(94,224,94,.6)}
+.flash{position:absolute;inset:0;background:rgba(255,40,40,.35);pointer-events:none;z-index:4;animation:flash .6s forwards}
+@keyframes flash{to{opacity:0}}
+
+.views{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;padding:16px}
+.view{flex:1 1 100%;display:flex;flex-direction:column;align-items:center;min-width:0}
+.view .cap{font-size:1rem;color:#efe6ff;margin-bottom:8px;text-align:center}
+.view canvas{display:block;max-width:100%;max-height:60vh;width:auto;height:auto;border:4px solid #000;box-shadow:0 0 0 3px #555,0 6px 0 3px #000;image-rendering:pixelated;background:#000}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;padding:0 16px 16px;font-size:.9rem;color:#e0d6f5}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend img,.legend i{width:24px;height:24px;image-rendering:pixelated;border:2px solid #000;display:inline-block}
+.legend i.ghost{border:3px dashed var(--gold);background:rgba(255,216,74,.15)}
+.legend i.prev{border:3px dashed var(--cyan);background:rgba(77,225,255,.15)}
+
+/* ===== XP orbs & stamp ===== */
+.orb{position:absolute;width:18px;height:18px;border-radius:50%;z-index:5;pointer-events:none;
+  background:radial-gradient(circle at 35% 35%,#f4ff9a,#7cf03c 45%,#2e8f12 75%);box-shadow:0 0 14px #b6ff5a;animation:orb 1.6s ease-out forwards}
+@keyframes orb{0%{transform:translate(0,0) scale(.3);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+.stamp{position:absolute;left:50%;top:44%;z-index:6;pointer-events:none;padding:16px 26px;font-size:2rem;color:#d6ffd6;
+  border:6px solid var(--green);background:rgba(10,40,10,.85);text-align:center;box-shadow:0 0 40px rgba(94,224,94,.8);
+  animation:stamp 2.6s ease-out forwards}
+@keyframes stamp{0%{transform:translate(-50%,-50%) rotate(-12deg) scale(3);opacity:0}15%{transform:translate(-50%,-50%) rotate(-8deg) scale(1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-50%) rotate(-8deg) scale(1);opacity:0}}
+
+/* ===== MakeCode workspace ===== */
+.ws{padding:22px;min-height:320px;overflow-x:auto;
+  background-color:#1c1a23;background-image:radial-gradient(rgba(255,255,255,.09) 1.6px,transparent 1.6px);background-size:24px 24px}
+.ws,.ws *{text-shadow:none}
+.ev{--c:#2fa5c9;--cd:#1b7a98;display:inline-flex;flex-direction:column;max-width:100%;font-family:var(--block-font);font-weight:800;font-size:1.12rem;color:#fff;filter:drop-shadow(0 5px 0 rgba(0,0,0,.5))}
+.ev-hat{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;background:var(--c);padding:14px 26px 12px 18px;border-radius:26px 26px 0 0;border:2px solid var(--cd);border-bottom:none;font-size:1.2rem;min-width:250px}
+.ev-body{border-left:22px solid var(--c);padding:8px 0 10px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.ev-foot{background:var(--c);height:24px;width:240px;border-radius:0 0 12px 0;border:2px solid var(--cd);border-top:none}
+.stmt{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;border-radius:6px;background:var(--b);border:2px solid var(--bd);animation:slideIn .4s backwards}
+.stmt::after{content:"";position:absolute;left:18px;bottom:-9px;width:26px;height:9px;background:var(--b);border:2px solid var(--bd);border-top:none;border-radius:0 0 5px 5px;z-index:1}
+.stmt:nth-child(2){animation-delay:.08s}.stmt:nth-child(3){animation-delay:.16s}.stmt:nth-child(4){animation-delay:.24s}.stmt:nth-child(5){animation-delay:.32s}
+@keyframes slideIn{from{transform:translateX(-20px);opacity:0}}
+.c-blocks{--b:#7cba3d;--bd:#5a8f2a}
+.c-fn{--b:#3a62d6;--bd:#2747a5}
+.c-var{--b:#c0306a;--bd:#8f1f4d}
+.comment{align-self:flex-start;margin-left:6px;background:#fff6a8;color:#5f4f00;padding:6px 14px;border-radius:4px;font-style:italic;font-weight:700;font-size:.95rem;border:2px solid #d9c84f}
+.pos{display:inline-flex;align-items:flex-end;gap:8px;background:#4f9e7d;border:2px solid #3a7a5f;border-radius:999px;padding:4px 12px 6px}
+.crd{display:inline-flex;flex-direction:column;align-items:center;line-height:1}
+.crd em{font-style:normal;font-size:.72rem;opacity:.95;margin-bottom:3px;color:#e9fff4}
+.crd .row{display:flex;align-items:center;gap:3px}
+.fld{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#1f1f1f;border-radius:999px;padding:4px 12px;min-height:2.1em;font-weight:800;border:2px solid rgba(0,0,0,.22);font-family:var(--block-font)}
+.fld.num{min-width:2.5em;justify-content:center}
+input.fld{width:3.6em;text-align:center;font-size:1.12rem;outline:none;cursor:text}
+input.fld:focus,.sel:focus-within{box-shadow:0 0 0 4px var(--gold)}
+.sel{position:relative;padding-right:32px}
+.sel select{appearance:none;-webkit-appearance:none;border:none;background:transparent;font:inherit;font-size:1.12rem;font-weight:800;color:#1f1f1f;cursor:pointer;padding:2px 0}
+.caret{font-size:.75rem;opacity:.7}
+.sel .caret{position:absolute;right:12px;pointer-events:none}
+.fld-blk img{width:26px;height:26px;image-rendering:pixelated;border:1px solid #000}
+.reporter{display:inline-flex;align-items:center;background:#c0306a;color:#fff;border-radius:999px;padding:6px 12px;border:2px solid #8f1f4d}
+.blink{animation:blink .7s ease-in-out 6}
+@keyframes blink{50%{box-shadow:0 0 0 6px #ff4df0,0 0 24px #ff4df0}}
+details.jsview{margin:0 16px 16px;font-size:.95rem}
+details.jsview summary{cursor:pointer;color:var(--muted);padding:6px 0}
+details.jsview pre{margin:6px 0 0;padding:12px 14px;background:#0d0c12;border:3px solid #000;color:#b8f5b0;font-size:.95rem;overflow-x:auto;text-shadow:none;line-height:1.45}
+
+/* ===== Actions & feedback ===== */
+.actions{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;padding:22px 24px 16px}
+.feedback{margin:0 24px 30px;padding:18px 22px;border:4px solid #000;font-size:1.3rem;line-height:1.45;display:flex;flex-wrap:wrap;gap:18px;align-items:center;min-height:96px;
+  background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.7)),var(--tex-stone);background-size:auto,48px;
+  box-shadow:inset 3px 3px 0 rgba(255,255,255,.12),inset -3px -3px 0 rgba(0,0,0,.5)}
+.feedback .ico{font-size:2.6rem;line-height:1}
+.feedback .msg{flex:1 1 400px}
+.feedback .msg small{display:block;font-size:1rem;color:var(--muted);margin-top:6px}
+.feedback.err{background:linear-gradient(rgba(110,10,10,.82),rgba(70,5,5,.9)),var(--tex-stone);background-size:auto,48px;box-shadow:0 0 0 3px var(--red),0 0 30px rgba(255,90,90,.45);animation:shake .45s}
+.feedback.ok{background:linear-gradient(rgba(20,100,20,.82),rgba(10,60,10,.9)),var(--tex-stone);background-size:auto,48px;box-shadow:0 0 0 3px var(--green),0 0 34px rgba(94,224,94,.55);animation:pop .45s}
+.feedback.hint{background:linear-gradient(rgba(110,80,5,.82),rgba(70,50,0,.9)),var(--tex-stone);background-size:auto,48px;box-shadow:0 0 0 3px var(--gold)}
+@keyframes pop{0%{transform:scale(.9);opacity:.3}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+
+/* ===== Final screen ===== */
+.final{position:fixed;inset:0;z-index:50;display:none;overflow:auto;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(circle at center,rgba(120,60,200,.6),rgba(5,3,10,.96))}
+.final.show{display:flex}
+.final-card{position:relative;z-index:2;max-width:980px;width:100%;text-align:center;padding:34px 30px;border:6px solid #000;
+  background:linear-gradient(rgba(34,20,54,.9),rgba(18,11,30,.96)),var(--tex-obsidian);background-size:auto,64px;
+  box-shadow:0 0 0 4px var(--amethyst),0 0 90px rgba(181,124,242,.8);animation:pop .7s}
+.shelves{display:flex;justify-content:center;gap:0;margin:0 auto 18px}
+.shelves div{width:64px;height:64px;background-size:cover;image-rendering:pixelated;border:2px solid #000;animation:shelf 1.6s ease-in-out infinite}
+@keyframes shelf{50%{filter:brightness(1.4) drop-shadow(0 0 10px #c58bff)}}
+.final h2{font-size:2.3rem;margin:8px 0;color:var(--gold);text-shadow:3px 3px 0 #5a3a00,0 0 24px rgba(255,216,74,.7)}
+.final h3{font-size:1.7rem;margin:6px 0 18px;color:var(--green)}
+.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:18px 0 24px}
+.stat{padding:12px 18px;border:3px solid #000;background:rgba(0,0,0,.45);min-width:150px}
+.stat b{display:block;font-size:2rem;color:var(--gold)}
+.cf{position:fixed;top:-60px;z-index:1;width:30px;height:30px;background-size:cover;image-rendering:pixelated;border:2px solid #000;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(var(--r))}}
+
+footer{text-align:center;color:#7d7194;font-size:.85rem;padding:0 0 24px}
+@media (max-width:700px){html{font-size:15px}h1{font-size:1.55rem}.btn-run{font-size:1.3rem;padding:16px 24px}.mission{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="sparks" id="sparks"></div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🕵️‍♂️ Детектив Помилок: Врятуй Архів Мудрості!</h1>
+      <div class="sub">⛏ Урок MakeCode · «Лабіринт та головоломки» · знайди баг у блоках і полагодь лабіринт</div>
+    </div>
+    <div class="hud">
+      <div class="counter" id="counter">📂 Розкриті справи: <b id="cnt">0/4</b><div class="slots" id="slots"></div></div>
+      <button class="mc-btn small" id="btnFontDown" title="Зменшити текст">A−</button>
+      <button class="mc-btn small" id="btnFontUp" title="Збільшити текст">A+</button>
+      <button class="mc-btn small" id="btnSound" title="Звук">🔊</button>
+      <button class="mc-btn small" id="btnFull" title="На весь екран">⛶</button>
+    </div>
+  </header>
+
+  <nav class="cases" id="cases"></nav>
+
+  <section class="mission" id="mission"></section>
+
+  <main class="grid">
+    <section class="panel" id="worldPanel">
+      <div class="panel-h"><span>🗺️ Візуалізація лабіринту</span><span class="badge bad" id="badge">⚠ ПОМИЛКА В КОДІ</span></div>
+      <div class="views" id="views"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="panel" id="codePanel">
+      <div class="panel-h"><span>🧩 Код MakeCode з помилкою</span><span style="font-size:.9rem;color:#e9dcff">✏️ змінюй значення в білих полях</span></div>
+      <div class="ws" id="ws"></div>
+      <details class="jsview"><summary>&lt;/&gt; Показати цей код у JavaScript</summary><pre id="js"></pre></details>
+    </section>
+  </main>
+
+  <div class="actions">
+    <button class="mc-btn btn-run" id="btnRun">▶ Запустити дебаг (Запустити код)</button>
+    <button class="mc-btn btn-hint" id="btnHint">💡 Підказка</button>
+    <button class="mc-btn" id="btnReset">↺ Скинути код</button>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+  <footer>Порада для вчителя: попросіть учнів диктувати, яке поле змінити і яке число вписати — а потім разом натисніть «Запустити дебаг»!</footer>
+</div>
+
+<div class="final" id="final">
+  <div class="final-card">
+    <div class="shelves" id="shelves"></div>
+    <div style="font-size:3.2rem">🏛️✨📚</div>
+    <h2>Архів Мудрості розблоковано!</h2>
+    <h3>Ви справжні майстри MakeCode! 🏆</h3>
+    <p style="font-size:1.15rem;line-height:1.5;color:#e9dcff;margin:0 auto;max-width:720px">Усі 4 справи розкрито: стіни стали порожнистими, прохід — на правильній висоті, дах прибрано, а лава лягла під підлогу. Детективи, ви знайшли кожен баг!</p>
+    <div class="stats" id="stats"></div>
+    <button class="mc-btn btn-next" id="btnAgain">🔁 Грати знову</button>
+    <button class="mc-btn" id="btnCloseFinal" style="margin-left:10px">✖ Закрити</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= RNG & textures ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const T={}, TURL={};
+const pk=(r,a)=>a[Math.floor(r()*a.length)];
+function tex(name,seed,fn){
+  const c=document.createElement('canvas');c.width=c.height=16;
+  const g=c.getContext('2d');const r=mulberry32(seed);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const col=fn(x,y,r);if(col){g.fillStyle=col;g.fillRect(x,y,1,1);}}
+  T[name]=c;return c;
+}
+const turl=n=>TURL[n]||(TURL[n]=T[n].toDataURL());
+
+tex('stone',11,(x,y,r)=>pk(r,['#7f7f7f','#8a8a8a','#747474','#939393','#6c6c6c','#7a7a7a','#858585']));
+tex('bricks',12,(x,y,r)=>{
+  const row=y<8?0:1,yy=y%8;
+  if(yy===7||(row===0&&x===15)||(row===1&&x===7))return '#3f3f3f';
+  if(yy===0||(row===0&&x===0)||(row===1&&x===8))return pk(r,['#a3a3a3','#9a9a9a']);
+  if(yy===6||(row===0&&x===14)||(row===1&&x===6))return pk(r,['#5f5f5f','#666']);
+  return pk(r,['#7b7b7b','#858585','#737373','#8d8d8d','#7f7f7f']);
+});
+tex('grass_top',13,(x,y,r)=>pk(r,['#5b8f2f','#6aa837','#4f7f29','#79b843','#609a32','#64a134']));
+tex('dirt',14,(x,y,r)=>pk(r,['#866043','#79553a','#966c4a','#5e4330','#8b6a4f','#7d5a3f']));
+tex('grass_side',15,(x,y,r)=>{
+  if(y<3||(y===3&&r()<.55)||(y===4&&r()<.2))return pk(r,['#5b8f2f','#6aa837','#4f7f29','#79b843']);
+  return pk(r,['#866043','#79553a','#966c4a','#5e4330','#8b6a4f']);
+});
+tex('planks',16,(x,y,r)=>{
+  if(y%4===3)return '#6b5232';
+  if((y<4&&x===10)||(y>=4&&y<8&&x===3)||(y>=8&&y<12&&x===13)||(y>=12&&x===6))return '#6b5232';
+  return pk(r,['#a0824f','#9a7a47','#b08f59','#a88a53']);
+});
+tex('obsidian',17,(x,y,r)=>{const v=r();return v>.93?'#4a3478':pk(r,['#140d1f','#1d1230','#2a1a45','#0f0a17','#22153a']);});
+tex('amethyst',18,(x,y,r)=>{const v=r();return v>.9?'#efd6ff':pk(r,['#8d5ac9','#a874e0','#6b3fa0','#c9a0f5','#7a4bb8','#9966d6']);});
+tex('deepslate',19,(x,y,r)=>(y%8===0&&r()<.6)?'#28282d':pk(r,['#3a3a40','#45454c','#2f2f35','#505058','#3f3f46']));
+tex('bookshelf',20,(x,y,r)=>{
+  if(y<2||y>13||y===7||y===8)return pk(r,['#a0824f','#9a7a47','#b08f59']);
+  if(x===0||x===15)return '#6b5232';
+  const cols=['#9b2626','#2a5d9a','#2e7d32','#7b1fa2','#c08a10','#c2185b','#1b7070'];
+  const b=(Math.floor((x-1)/2)+(y>8?3:0))%7;
+  if((y===2||y===9))return '#3a2a1a';
+  return (x%2===0)?cols[b]:shade(cols[b]);
+});
+function shade(h){const n=parseInt(h.slice(1),16);const f=v=>Math.max(0,Math.floor(v*.72));return '#'+[f(n>>16),f(n>>8&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('');}
+tex('air',21,(x,y)=>((x+y)%2===0)?'#e6f3ff':'#c9def7');
+for(let f=0;f<4;f++){
+  tex('lava'+f,50,(x,y,r)=>{
+    const v=Math.sin((x+f*1.6)*.9)+Math.sin((y*1.3-f*1.2)*.7)+Math.sin((x+y+f*2.2)*.5)+r()*1.4;
+    return v>2.5?'#fff3a0':v>1.5?'#fbbf24':v>.4?'#f59e0b':v>-.7?'#ea580c':'#c2410c';
+  });
+}
+T.lava=T.lava0;
+(function setCssTextures(){
+  const s=document.documentElement.style;
+  ['stone','obsidian','amethyst','deepslate'].forEach(n=>s.setProperty('--tex-'+n,`url(${turl(n)})`));
+})();
+
+/* ================= Maze ================= */
+const N=15;
+const MAZE=(()=>{
+  const m=Array.from({length:N},()=>Array(N).fill(1));
+  const r=mulberry32(4242);const st=[[1,1]];m[1][1]=0;
+  while(st.length){
+    const [x,z]=st[st.length-1];
+    const d=[[2,0],[-2,0],[0,2],[0,-2]].filter(([dx,dz])=>{const nx=x+dx,nz=z+dz;return nx>0&&nx<N-1&&nz>0&&nz<N-1&&m[nz][nx]===1;});
+    if(!d.length){st.pop();continue;}
+    const [dx,dz]=d[Math.floor(r()*d.length)];
+    m[z+dz/2][x+dx/2]=0;m[z+dz][x+dx]=0;st.push([x+dx,z+dz]);
+  }
+  m[0][1]=0;m[N-1][N-2]=0;return m;
+})();
+const PATH=(()=>{
+  const start=[1,0],goal=[13,14];const prev={};const q=[start];const key=(x,z)=>x+','+z;prev[key(...start)]=null;
+  while(q.length){const [x,z]=q.shift();if(x===goal[0]&&z===goal[1])break;
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;
+      if(nx<0||nz<0||nx>=N||nz>=N||MAZE[nz][nx]||key(nx,nz) in prev)continue;prev[key(nx,nz)]=[x,z];q.push([nx,nz]);}}
+  const p=[];let c=goal;while(c){p.unshift(c);c=prev[key(...c)];}
+  return [[1,-1],...p,[13,15]];
+})();
+
+/* ================= Canvas helpers ================= */
+const CS=40,ML=58,MT=14,MR=14,MB=50;
+const cx=i=>ML+i*CS, cy=j=>MT+j*CS;
+function prep(cv,cols,rows){
+  const w=ML+cols*CS+MR,h=MT+rows*CS+MB;
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+  const g=cv.getContext('2d');g.imageSmoothingEnabled=false;
+  g.fillStyle='#120e1a';g.fillRect(0,0,w,h);return g;
+}
+function txt(g,s,x,y,o={}){
+  const {align='center',color='#fff',size=17,base='middle'}=o;
+  g.font=`bold ${size}px "Courier New", monospace`;g.textAlign=align;g.textBaseline=base;
+  g.fillStyle='#000';g.fillText(s,x+2,y+2);g.fillStyle=color;g.fillText(s,x,y);
+}
+function tag(g,s,x,y,bg,fg='#000'){
+  g.font='bold 15px "Courier New", monospace';
+  const w=g.measureText(s).width+14;
+  const lx=Math.max(4,Math.min(g.canvas.width-w-4,x-w/2));
+  g.fillStyle='#000';g.fillRect(lx-3,y-3,w+6,28);g.fillStyle=bg;g.fillRect(lx,y,w,22);
+  g.fillStyle=fg;g.textAlign='left';g.textBaseline='middle';g.fillText(s,lx+7,y+12);
+}
+function sky(g,cols,rows,t){
+  const gr=g.createLinearGradient(0,MT,0,MT+rows*CS);gr.addColorStop(0,'#5f8fe8');gr.addColorStop(1,'#b4cfff');
+  g.fillStyle=gr;g.fillRect(ML,MT,cols*CS,rows*CS);
+  // pixel cloud
+  const W=cols*CS;const off=((t/60)%(W+200))-200;
+  g.save();g.beginPath();g.rect(ML,MT,W,rows*CS);g.clip();
+  g.fillStyle='rgba(255,255,255,.85)';
+  g.fillRect(ML+off,MT+16,120,20);g.fillRect(ML+off+20,MT+6,70,14);g.fillRect(ML+off+40,MT+36,90,10);
+  g.restore();
+}
+function gridLines(g,cols,rows){
+  g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1;
+  for(let i=0;i<=cols;i++){g.beginPath();g.moveTo(cx(i)+.5,MT);g.lineTo(cx(i)+.5,MT+rows*CS);g.stroke();}
+  for(let j=0;j<=rows;j++){g.beginPath();g.moveTo(ML,cy(j)+.5);g.lineTo(ML+cols*CS,cy(j)+.5);g.stroke();}
+}
+function axes(g,xs,ys,xName,yName,hlY0=true){
+  ys.forEach((v,j)=>txt(g,String(v),ML-10,cy(j)+CS/2,{align:'right',color:(hlY0&&v===0)?'#ffd84a':'#dccff5',size:17}));
+  xs.forEach((v,i)=>txt(g,String(v),cx(i)+CS/2,cy(ys.length)+15,{size:15,color:'#dccff5'}));
+  txt(g,yName,6,MT+2,{align:'left',color:'#5ee05e',size:16,base:'top'});
+  txt(g,xName+' →',ML+xs.length*CS/2,cy(ys.length)+38,{color:'#5ee05e',size:16});
+}
+function cell(g,name,i,j,dark){
+  if(!name)return;
+  if(name==='CAVE'){g.fillStyle='#1d1510';g.fillRect(cx(i),cy(j),CS,CS);return;}
+  g.drawImage(T[name],cx(i),cy(j),CS,CS);
+  if(dark){g.fillStyle=`rgba(0,0,0,${dark})`;g.fillRect(cx(i),cy(j),CS,CS);}
+}
+function ghost(g,i1,i2,yTop,rows,lo,hi,label,color,t){
+  const yMin=yTop-rows+1,a=Math.max(lo,yMin),b=Math.min(hi,yTop);
+  const xm=cx(i1)+(i2-i1+1)*CS/2;
+  if(a>b){const above=lo>yTop;tag(g,(above?'▲ ':'▼ ')+label+' (поза картою)',xm,above?MT+6:MT+rows*CS-30,color);return;}
+  const x=cx(i1),w=(i2-i1+1)*CS,y=cy(yTop-b),h=(b-a+1)*CS;
+  g.save();g.fillStyle=color+'38';g.fillRect(x,y,w,h);
+  g.setLineDash([10,6]);g.lineDashOffset=-(t/40)%16;g.lineWidth=4;g.strokeStyle=color;g.strokeRect(x+2,y+2,w-4,h-4);
+  g.restore();
+  const ly=y-30>=MT?y-30:(y+h+6<MT+rows*CS-24?y+h+6:y+4);
+  tag(g,label,xm,ly,color);
+}
+function bubble(g,x,y,s,bg='#fff',fg='#c00'){
+  g.font='bold 20px "Courier New", monospace';const w=g.measureText(s).width+16;
+  g.fillStyle='#000';g.fillRect(x-w/2-3,y-31,w+6,32);g.fillStyle=bg;g.fillRect(x-w/2,y-28,w,26);
+  g.fillRect(x-4,y-2,8,6);g.fillStyle=fg;g.textAlign='center';g.textBaseline='middle';g.fillText(s,x,y-15);
+}
+function steveSide(g,px,feet,walk,t){
+  const u=CS/16;
+  const R=(c,x,y,w,h)=>{g.fillStyle=c;g.fillRect(px+x*u,feet-(y+h)*u,w*u,h*u);};
+  const sw=walk?Math.round(Math.sin(t/80)*2):0;
+  R('#3b3b9e',4,Math.max(0,sw),4,12-Math.max(0,sw));R('#2f2f86',8,Math.max(0,-sw),4,12-Math.max(0,-sw));
+  R('#555',4,0,4,1);R('#555',8,0,4,1);
+  R('#00a8a8',4,12,8,12);R('#008a8a',4,12,8,2);
+  R('#00a8a8',0,18,4,6);R('#c69c6d',0,12+(walk?-sw*.5:0),4,6);R('#00a8a8',12,18,4,6);R('#c69c6d',12,12+(walk?sw*.5:0),4,6);
+  R('#c69c6d',4,24,8,8);R('#3b2a1d',4,30,8,2);R('#3b2a1d',4,28,1,2);R('#3b2a1d',11,28,1,2);
+  R('#fff',5,27,1,1);R('#4a3ad6',6,27,1,1);R('#4a3ad6',9,27,1,1);R('#fff',10,27,1,1);
+  R('#8a5a3a',7,26,2,1);R('#6b3f2a',6,25,4,1);
+}
+function steveTop(g,px,py){
+  const u=CS/16;
+  g.fillStyle='#00a8a8';g.fillRect(px+1*u,py+5*u,14*u,6*u);
+  g.fillStyle='#c69c6d';g.fillRect(px+1*u,py+11*u,3*u,2*u);g.fillRect(px+12*u,py+11*u,3*u,2*u);
+  g.fillStyle='#3b2a1d';g.fillRect(px+4*u,py+3*u,8*u,9*u);
+  g.fillStyle='#c69c6d';g.fillRect(px+4*u,py+11*u,8*u,2*u);
+}
+function floorShadows(g,cols,rows,isWall){
+  g.fillStyle='rgba(0,0,0,.35)';
+  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+    if(isWall(i,j))continue;
+    if(j>0&&isWall(i,j-1))g.fillRect(cx(i),cy(j),CS,9);
+    if(i>0&&isWall(i-1,j))g.fillRect(cx(i),cy(j),9,CS);
+  }
+}
+const range=(a,b)=>{const r=[];for(let v=a;v<=b;v++)r.push(v);return r;};
+const lavaFrame=t=>'lava'+(Math.floor(t/170)%4);
+
+/* ================= Code-block HTML helpers ================= */
+const fBlock=(t,label)=>`<span class="fld fld-blk"><img src="${turl(t)}" alt="">${label}<span class="caret">▼</span></span>`;
+const fixed=(label,caret=true)=>`<span class="fld">${label}${caret?'<span class="caret">▼</span>':''}</span>`;
+const num=v=>`<span class="fld num">${v}</span>`;
+const inp=(f,v)=>`<input class="fld num edit" data-field="${f}" value="${v}" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${f}">`;
+const sel=(f,v,opts)=>`<span class="fld sel"><select data-field="${f}">${opts.map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('')}</select><span class="caret">▼</span></span>`;
+const rep=n=>`<span class="reporter">${n}</span>`;
+const wrapV=v=>(typeof v==='number')?num(v):v;
+const pos=(x,y,z)=>`<span class="pos">${[['X',x],['Y',y],['Z',z]].map(([a,v])=>`<span class="crd"><em>${a}</em><span class="row">~ ${wrapV(v)}</span></span>`).join('')}</span>`;
+const stmt=(c,h)=>`<div class="stmt ${c}">${h}</div>`;
+const cmt=s=>`<div class="comment">${s}</div>`;
+const ev=items=>`<div class="ev"><div class="ev-hat">▶ при запуску</div><div class="ev-body">${items.join('')}</div><div class="ev-foot"></div></div>`;
+const lg=(t,label)=>`<span><img src="${turl(t)}" alt="">${label}</span>`;
+const lgGhost=label=>`<span><i class="ghost"></i>${label}</span>`;
+const lgPrev=`<span><i class="prev"></i>попередній перегляд нового значення</span>`;
+const lgSteve=`<span>🧍 Стів (гравець, 2 блоки заввишки)</span>`;
+
+/* ================= Levels ================= */
+const MODES=[['replace','Замінити'],['hollow','Пустота'],['outline','Контур'],['destroy','Знищити']];
+const MODE_JS={replace:'Replace',hollow:'Hollow',outline:'Outline',destroy:'Destroy'};
+const ord=(a,b)=>a<=b?[a,b]:[b,a];
+
+const LEVELS=[
+{
+  name:'Блоковані стіни',icon:'🧱',
+  evidence:'Свідок-шахтар скаржиться: «Я прийшов до лабіринту, а він — суцільна кам’яна брила! Жодного коридору!»',
+  goal:'Знайдіть у блоці «заповнити», через який параметр усі стіни стали суцільними, і виправте його.',
+  teacher:'Помилка: режим заповнення «Замінити». Правильно: обрати «Пустота» у випадному списку.',
+  defaults:{mode:'replace'},solution:{mode:'hollow'},
+  views:[{cap:'Вигляд згори · вісь X → вправо, вісь Z ↓ вниз'}],
+  legend:()=>lg('bricks','Камінна цегла (стіна)')+lg('grass_top','Трава (підлога коридору)')+lg('dirt','Земля')+lg('bookshelf','Вихід: Архів Мудрості')+lgSteve,
+  code:s=>ev([
+    cmt('// будуємо стіни лабіринту'),
+    stmt('c-blocks',`заповнити блоками ${fBlock('bricks','Камінна цегла')} з ${pos(0,0,0)} до ${pos(14,2,14)} ${sel('mode',s.mode,MODES)}`),
+    stmt('c-fn',`виклик функції ${fixed('внутрішні_стіни')}`)
+  ]),
+  js:s=>`blocks.fill(\n    STONE_BRICKS,\n    pos(0, 0, 0),\n    pos(14, 2, 14),\n    FillOperation.${MODE_JS[s.mode]||'?'}\n)\nвнутрішні_стіни()`,
+  check(s){
+    if(s.mode==='hollow')return {ok:true};
+    return {ok:false,msg:{
+      replace:'Ой! Стіни все ще суцільні! 🧱 Режим «Замінити» заливає каменем увесь об’єм. Перевірте режим заповнення!',
+      outline:'Хм… Зовнішня стіна є, але всередині залишилась земля! Режим «Контур» не очищає середину. Спробуйте інший режим.',
+      destroy:'БУМ! 💥 Режим «Знищити» зруйнував усі блоки — стін немає взагалі! Потрібен режим, що будує стіни, але лишає порожнечу всередині.'
+    }[s.mode]};
+  },
+  hints:['Подивіться на карту: всередині немає жодного коридору. Який блок коду будує стіни?',
+         'Зверніть увагу на ОСТАННІЙ параметр блоку «заповнити блоками» — режим заповнення.',
+         'Потрібен режим, який будує лише оболонку, а всередині залишає… порожнечу 😉'],
+  success:'Режим «Пустота» будує тільки оболонку, а всередині залишає повітря — тепер видно коридори, і Стів пройшов лабіринт!',
+  draw(cvs,s,t,anim){
+    const cv=cvs[0],cols=15,rows=17,g=prep(cv,cols,rows);
+    const zs=range(-1,15);
+    const blockAt=(x,z)=>{
+      if(x<0||x>14||z<0||z>14)return 'grass_top';
+      switch(s.mode){
+        case 'replace':return 'bricks';
+        case 'hollow':return MAZE[z][x]?'bricks':'grass_top';
+        case 'outline':return MAZE[z][x]?'bricks':'dirt';
+        default:return 'grass_top';
+      }
+    };
+    const isWall=(i,j)=>blockAt(i,zs[j])==='bricks';
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+      const b=blockAt(i,zs[j]);cell(g,b,i,j,b==='bricks'?0:(zs[j]<0||zs[j]>14?.15:.08));
+      if(b==='bricks'){g.fillStyle='rgba(255,255,255,.12)';g.fillRect(cx(i),cy(j),CS,4);}
+    }
+    floorShadows(g,cols,rows,isWall);
+    if(s.mode==='destroy'){
+      for(let z=0;z<15;z++)for(let x=0;x<15;x++)if(MAZE[z][x]&&(x*7+z*3)%5===0){
+        const bob=Math.sin(t/300+x+z)*4;g.drawImage(T.bricks,cx(x)+12,cy(z+1)+12+bob,16,16);
+      }
+    }
+    // outline of build area
+    g.strokeStyle='rgba(255,216,74,.7)';g.lineWidth=2;g.setLineDash([6,4]);g.strokeRect(cx(0)+1,cy(1)+1,15*CS-2,15*CS-2);g.setLineDash([]);
+    cell(g,'bookshelf',13,16);
+    // Steve
+    if(anim&&anim.ok){
+      const p=Math.max(0,Math.min((t-anim.start)/130,PATH.length-1));
+      g.fillStyle='rgba(120,255,120,.55)';
+      for(let k=0;k<=Math.floor(p);k++){const [x,z]=PATH[k];g.fillRect(cx(x)+13,cy(z+1)+13,CS-26,CS-26);}
+      const [x,z]=PATH[Math.floor(p)];steveTop(g,cx(x),cy(z+1));
+      if(p>=PATH.length-1)bubble(g,cx(13)+CS/2,cy(16)-2,'✔ Вихід!','#d6ffd6','#156b15');
+    }else{
+      const shake=(anim&&!anim.ok&&t-anim.start<700)?Math.sin(t/25)*4:0;
+      steveTop(g,cx(1)+shake,cy(0));
+      if(anim&&!anim.ok)bubble(g,cx(1)+CS/2+30,cy(0)+4,'?!');
+    }
+    axes(g,range(0,14),zs,'X','Z↓',false);
+  }
+},
+{
+  name:'Низькі проходи',icon:'🚪',
+  evidence:'Стів дійшов до входу в лабіринт і вперся в стіну: «Двері є в коді, але я їх не бачу! Може, вони десь угорі?»',
+  goal:'Знайдіть, на якій висоті Y код прорубує прохід, і перемістіть прохід туди, де стоїть гравець.',
+  teacher:'Помилка: блок «Повітря» має Y від 5 до 7. Правильно: Y від 0 до 2 (висота стіни).',
+  defaults:{y1:5,y2:7},solution:{y1:0,y2:2},
+  views:[{cap:'Розріз збоку через вхід (X = 1) · вісь Z → вглиб лабіринту'}],
+  legend:()=>lg('bricks','Камінна цегла (стіна, Y 0…2)')+lg('grass_side','Земля / підлога')+lg('bookshelf','Архів')+lgGhost('куди код поставив Повітря')+lgPrev+lgSteve,
+  code:s=>ev([
+    cmt('// стіни лабіринту готові'),
+    stmt('c-blocks',`заповнити блоками ${fBlock('bricks','Камінна цегла')} з ${pos(0,0,0)} до ${pos(14,2,14)} ${fixed('Пустота')}`),
+    stmt('c-fn',`виклик функції ${fixed('внутрішні_стіни')}`),
+    cmt('// прорубуємо вхід у лабіринт'),
+    stmt('c-blocks',`заповнити блоками ${fBlock('air','Повітря')} з ${pos(1,inp('y1',s.y1),0)} до ${pos(1,inp('y2',s.y2),0)} ${fixed('Замінити')}`)
+  ]),
+  js:s=>`blocks.fill(STONE_BRICKS, pos(0, 0, 0), pos(14, 2, 14), FillOperation.Hollow)\nвнутрішні_стіни()\nblocks.fill(\n    AIR,\n    pos(1, ${s.y1}, 0),\n    pos(1, ${s.y2}, 0),\n    FillOperation.Replace\n)`,
+  check(s){
+    const [a,b]=ord(s.y1,s.y2);
+    if(a===0&&b===2&&s.y1<=s.y2)return {ok:true};
+    if(s.y1>s.y2)return {ok:false,msg:`Початок (Y = ${s.y1}) вищий за кінець (Y = ${s.y2})! Перша координата має бути нижньою.`};
+    if(a>2)return {ok:false,msg:`Ой! Прохід висить у небі над стіною! ☁️ Стіна займає Y від 0 до 2, а Повітря ставиться на Y ${a}…${b}. Гравець стоїть на Y = 0!`};
+    if(a<0)return {ok:false,msg:`Ви прокопали яму під землею (Y = ${a})! 🕳️ Прохід має починатися на рівні ніг гравця — Y = 0.`};
+    if(a>0)return {ok:false,msg:`Прохід починається на Y = ${a}, а знизу залишилась стіна — Стіву доведеться стрибати! Почніть прохід з Y = 0.`};
+    if(b<2)return {ok:false,msg:`Прохід занизький — над ним залишилась цеглина стіни! Зробіть прохід на всю висоту стіни: до Y = 2.`};
+    return {ok:false,msg:`Повітря виходить вище за стіну (стіна лише до Y = 2). Зайві блоки — виправте кінцеву висоту на 2.`};
+  },
+  hints:['Подивіться на розріз: на якому Y стоять ноги Стіва? (жовта цифра 0 — рівень ніг)',
+         'Жовта рамка показує, куди код поставив Повітря. Чи перетинає вона сіру стіну?',
+         'Стіна займає Y від 0 до 2. Прохід має бути там само: від 0 до 2!'],
+  success:'Гравець стоїть на Y = 0, а стіна має висоту Y 0…2. Тепер прохід вирізано саме там — Стів зайшов у лабіринт!',
+  draw(cvs,s,t,anim,prev){
+    const cv=cvs[0],cols=15,rows=11,yTop=8,g=prep(cv,cols,rows);
+    const zs=range(-4,10),ys=range(-2,8).reverse();
+    const [lo,hi]=ord(s.y1,s.y2);
+    sky(g,cols,rows,t);
+    const base=(z,y)=>{
+      if(y<=-2)return 'dirt';if(y===-1)return 'grass_side';
+      if(z===0&&y<=2)return 'bricks';
+      if(z===10&&y<=1)return 'bookshelf';
+      return null;
+    };
+    const blockAt=(z,y)=>{const b=base(z,y);if(z===0&&y>=lo&&y<=hi){return y<0?'CAVE':null;}return b;};
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++)cell(g,blockAt(zs[i],ys[j]),i,j);
+    // dark interior of carved doorway
+    for(let y=Math.max(lo,0);y<=Math.min(hi,2);y++){g.fillStyle='rgba(20,15,30,.45)';g.fillRect(cx(4),cy(yTop-y),CS,CS);}
+    gridLines(g,cols,rows);
+    txt(g,'ВХІД',cx(4)+CS/2,cy(yTop+2)+CS/2,{size:14,color:'#ffe9a8'});
+    ghost(g,4,4,yTop,rows,lo,hi,`Повітря: Y ${lo}…${hi}`,'#ffd84a',t);
+    if(prev){const [a,b]=ord(prev.y1,prev.y2);if(!isNaN(a)&&!isNaN(b))ghost(g,4,4,yTop,rows,a,b,`👁 Y ${a}…${b}`,'#4de1ff',t);}
+    // Steve
+    const passable=lo<=0&&hi>=1;
+    let z=-3,walk=false;
+    if(anim){
+      const e=(t-anim.start)/1000;const target=passable?8.6:-1;
+      z=Math.min(-3+e*2.8,target);walk=z<target;
+    }
+    const feet=cy(yTop-0)+CS;
+    steveSide(g,cx(z+4),feet,walk,t);
+    if(anim&&!walk){
+      if(passable)bubble(g,cx(z+4)+CS/2,feet-2*CS-6,'Я всередині!','#d6ffd6','#156b15');
+      else bubble(g,cx(z+4)+CS/2,feet-2*CS-6,'?! Стіна!');
+    }
+    axes(g,zs,ys,'Z','Y↑');
+  }
+},
+{
+  name:'Заблокована стеля',icon:'🏠',
+  evidence:'Пілот на елітрах доповідає: «Пролітаю над лабіринтом, а там — суцільний кам’яний дах! Коридорів згори не видно!»',
+  goal:'Код мав прибрати дах, але видалив не той шар. Знайдіть висоту даху на розрізі та виправте змінну.',
+  teacher:'Помилка: змінна висота_даху = 2. Правильно: 10 (дах лежить на Y = 10).',
+  defaults:{h:2},solution:{h:10},
+  views:[{cap:'Розріз збоку (ряд Z = 5) · стіни Y 0…9'},{cap:'Вигляд з висоти пташиного польоту'}],
+  legend:()=>lg('stone','Камінь (дах)')+lg('bricks','Камінна цегла (стіни)')+lg('grass_top','Підлога')+lgGhost('шар, який видалив код')+lgPrev,
+  code:s=>ev([
+    cmt('// стіни Y 0…9 + кам’яний дах'),
+    stmt('c-fn',`виклик функції ${fixed('побудувати_лабіринт')}`),
+    cmt('// прибираємо дах, щоб бачити лабіринт згори'),
+    stmt('c-var',`встановити ${fixed('висота_даху')} на ${inp('h',s.h)}`),
+    stmt('c-blocks',`заповнити блоками ${fBlock('air','Повітря')} з ${pos(0,rep('висота_даху'),0)} до ${pos(14,rep('висота_даху'),14)} ${fixed('Замінити')}`)
+  ]),
+  js:s=>`побудувати_лабіринт()\nlet висота_даху = ${s.h}\nblocks.fill(\n    AIR,\n    pos(0, висота_даху, 0),\n    pos(14, висота_даху, 14),\n    FillOperation.Replace\n)`,
+  check(s){
+    if(s.h===10)return {ok:true};
+    if(s.h>=0&&s.h<10)return {ok:false,msg:`Ой! Код вирізав шар у стінах на Y = ${s.h}, а дах на верхівці залишився! 🏠 Подивіться на розріз: на якій висоті лежить сірий дах?`};
+    if(s.h<0)return {ok:false,msg:`Ви видалили підлогу (Y = ${s.h})! Дах шукайте нагорі, а не під ногами. ⬆️`};
+    return {ok:false,msg:`На Y = ${s.h} і так лише повітря — дах нижче! Знайдіть точну висоту даху на розрізі.`};
+  },
+  hints:['Подивіться на розріз збоку: на якій висоті Y лежить сірий кам’яний дах?',
+         'Яка змінна задає шар, що видаляється? Знайдіть її у блоці «встановити».',
+         'Стіни займають Y від 0 до 9, отже дах — на наступному шарі…'],
+  success:'Дах лежав на Y = 10. Тепер верхній шар видалено, і лабіринт видно з висоти пташиного польоту!',
+  draw(cvs,s,t,anim,prev){
+    const h=s.h;
+    const world=(x,z,y)=>{
+      if(y===h)return null;
+      if(y===-1)return 'grass';
+      if(y>=0&&y<=9)return MAZE[z][x]?'bricks':null;
+      if(y===10)return 'stone';
+      return null;
+    };
+    // side view
+    {
+      const cv=cvs[0],cols=15,rows=13,yTop=11,g=prep(cv,cols,rows),Z=5;
+      const ys=range(-1,11).reverse();
+      sky(g,cols,rows,t);
+      for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+        const y=ys[j];let b=world(i,Z,y);
+        if(b==='grass')b='grass_side';
+        if(b)cell(g,b,i,j);
+        else if(y>=-1&&y<=9){
+          let covered=false;for(let yy=y+1;yy<=11;yy++)if(world(i,Z,yy)){covered=true;break;}
+          if(covered){g.fillStyle='rgba(15,10,25,.62)';g.fillRect(cx(i),cy(j),CS,CS);}
+        }
+      }
+      gridLines(g,cols,rows);
+      ghost(g,0,14,yTop,rows,h,h,`Повітря: Y = ${h}`,'#ffd84a',t);
+      if(prev&&!isNaN(prev.h))ghost(g,0,14,yTop,rows,prev.h,prev.h,`👁 Y = ${prev.h}`,'#4de1ff',t);
+      axes(g,range(0,14),ys,'X','Y↑');
+    }
+    // top view
+    {
+      const cv=cvs[1],cols=15,rows=15,g=prep(cv,cols,rows);
+      const isWall=(x,z)=>{for(let y=11;y>=-1;y--){const b=world(x,z,y);if(b)return y>=0;}return false;};
+      for(let z=0;z<15;z++)for(let x=0;x<15;x++){
+        let top=null,ty=-2;for(let y=11;y>=-1;y--){const b=world(x,z,y);if(b){top=b;ty=y;break;}}
+        if(!top){g.fillStyle='#000';g.fillRect(cx(x),cy(z),CS,CS);continue;}
+        cell(g,top==='grass'?'grass_top':top,x,z,Math.min(.55,(11-ty)*.045));
+      }
+      if(world(0,0,10)===null)floorShadows(g,cols,rows,isWall);
+      gridLines(g,cols,rows);
+      const roof=world(7,7,10)!==null;
+      if(roof){tag(g,'Суцільний дах — коридорів не видно',cx(7.5),cy(7)+8,'#ff8a8a');}
+      else if(anim&&anim.ok){
+        const a=Math.max(0,1-(t-anim.start)/2500);
+        if(a>0){g.fillStyle=`rgba(255,255,200,${a*.6})`;g.fillRect(ML,MT,cols*CS,rows*CS);}
+        tag(g,'✔ Лабіринт видно згори!',cx(7.5),cy(7)+8,'#9cff9c');
+      }
+      axes(g,range(0,14),range(0,14),'X','Z↓',false);
+    }
+  }
+},
+{
+  name:'Лава замість підлоги',icon:'🔥',
+  evidence:'Тривога! Лава з’являється в повітрі на рівні очей і капає на голови гравцям! А вона мала бути пасткою-підлогою.',
+  goal:'Знайдіть, на якій висоті Y код ставить лаву, і перенесіть її під ноги — замість підлоги.',
+  teacher:'Помилка: лава ставиться на Y від 5 до 6. Правильно: Y від -1 до -1 (шар підлоги).',
+  defaults:{y1:5,y2:6},solution:{y1:-1,y2:-1},
+  views:[{cap:'Розріз збоку (ряд Z = 7) · підлога на Y = −1'}],
+  legend:()=>lg('lava0','Лава')+lg('bricks','Камінна цегла (стіни Y 0…2)')+lg('grass_side','Підлога (Y = −1)')+lg('stone','Камінь')+lgGhost('куди код поставив Лаву')+lgPrev,
+  code:s=>ev([
+    stmt('c-fn',`виклик функції ${fixed('побудувати_лабіринт')}`),
+    cmt('// пастка: підлога з лави! 🔥'),
+    stmt('c-blocks',`заповнити блоками ${fBlock('lava0','Лава')} з ${pos(1,inp('y1',s.y1),1)} до ${pos(13,inp('y2',s.y2),13)} ${fixed('Замінити')}`)
+  ]),
+  js:s=>`побудувати_лабіринт()\nblocks.fill(\n    LAVA,\n    pos(1, ${s.y1}, 1),\n    pos(13, ${s.y2}, 13),\n    FillOperation.Replace\n)`,
+  check(s){
+    if(s.y1===-1&&s.y2===-1)return {ok:true};
+    const [a,b]=ord(s.y1,s.y2);
+    if(s.y1>s.y2)return {ok:false,msg:`Початок (Y = ${s.y1}) вищий за кінець (Y = ${s.y2})! Перша координата має бути нижньою.`};
+    if(a>2)return {ok:false,msg:`Ой! Лава все ще висить у повітрі на Y ${a}…${b}! 🔥 Вона має бути під ногами гравця, а не над стінами.`};
+    if(b>=0)return {ok:false,msg:`Обережно! Лава залила коридор на рівні ніг гравця (Y ${Math.max(a,0)}…${Math.min(b,2)}). Опустіть її нижче — під підлогу.`};
+    if(a<-1&&b<-1)return {ok:false,msg:`Лаву закопано надто глибоко (Y ${a}…${b}) — її зовсім не видно! Підлога лабіринту — на Y = -1.`};
+    return {ok:false,msg:`Майже! Лава має бути ОДНИМ шаром рівно замість підлоги: від Y = -1 до Y = -1.`};
+  },
+  hints:['Знайдіть на розрізі рівень підлоги — шар під ногами гравця. Яке там число Y?',
+         'Перевірте обидві Y-координати в блоці «заповнити блоками Лава».',
+         'Підлога — це шар Y = -1. Лава має бути тільки там: від -1 до -1.'],
+  success:'Лава тепер замість підлоги на Y = -1 — під ногами, а не в повітрі. Справжня пастка! Обережно, гаряче! 🔥',
+  draw(cvs,s,t,anim,prev){
+    const cv=cvs[0],cols=15,rows=11,yTop=7,g=prep(cv,cols,rows),Z=7;
+    const ys=range(-3,7).reverse();
+    const [lo,hi]=ord(s.y1,s.y2);
+    sky(g,cols,rows,t);
+    const lf=lavaFrame(t);
+    const blockAt=(x,y)=>{
+      if(x>=1&&x<=13&&y>=lo&&y<=hi)return 'LAVA';
+      if(y<=-3)return 'stone';if(y===-2)return 'dirt';if(y===-1)return 'grass_side';
+      if(y<=2)return MAZE[Z][x]?'bricks':null;
+      return null;
+    };
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+      const b=blockAt(i,ys[j]);cell(g,b==='LAVA'?lf:b,i,j);
+      if(b==='LAVA'){
+        g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(255,120,0,.18)';g.fillRect(cx(i)-6,cy(j)-6,CS+12,CS+12);g.restore();
+        if(j+1<rows&&!blockAt(i,ys[j+1])){
+          const d=((t/700+i*.37)%1);g.fillStyle='#f97316';
+          g.fillRect(cx(i)+CS/2-3,cy(j+1)+d*CS*1.6,6,8);
+        }
+      }
+    }
+    gridLines(g,cols,rows);
+    ghost(g,1,13,yTop,rows,lo,hi,`Лава: Y ${lo}…${hi}`,'#ffd84a',t);
+    if(prev){const [a,b]=ord(prev.y1,prev.y2);if(!isNaN(a)&&!isNaN(b))ghost(g,1,13,yTop,rows,a,b,`👁 Y ${a}…${b}`,'#4de1ff',t);}
+    if(lo===-1&&hi===-1)tag(g,'✔ Підлога — лава! Справжня пастка',cx(7.5),cy(yTop-4)+6,'#ffb36b');
+    axes(g,range(0,14),ys,'X','Y↑');
+  }
+}
+];
+
+/* ================= Game state ================= */
+const st={lvl:0,solved:[false,false,false,false],applied:null,anim:null,attempts:0,errors:0,hints:0,hintStep:0,start:Date.now(),sound:true,canvases:[],fontSize:18};
+const $=id=>document.getElementById(id);
+
+/* ================= Sound (Web Audio) ================= */
+let AC=null;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}if(AC.state==='suspended')AC.resume();return AC;}
+function beep(f,d,type='square',v=.12,w=0,f2=null){
+  if(!st.sound)return;const a=ac();if(!a)return;
+  const t0=a.currentTime+w,o=a.createOscillator(),gn=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);
+  gn.gain.setValueAtTime(v,t0);gn.gain.exponentialRampToValueAtTime(.0001,t0+d);
+  o.connect(gn).connect(a.destination);o.start(t0);o.stop(t0+d+.03);
+}
+const SFX={
+  click:()=>beep(520,.06,'square',.05),
+  error:()=>{beep(220,.2,'sawtooth',.13,0,180);beep(150,.38,'sawtooth',.13,.18,90);},
+  success:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.24,'triangle',.16,i*.09));for(let i=0;i<7;i++)beep(1300+Math.random()*1000,.09,'sine',.07,.45+i*.07);},
+  unlock:()=>{beep(110,.3,'square',.12,0,60);beep(880,.3,'triangle',.12,.18);beep(1320,.45,'triangle',.1,.32);},
+  hint:()=>{beep(880,.1,'sine',.1);beep(1175,.18,'sine',.1,.1);},
+  fanfare:()=>{const n=[523,523,523,659,784,659,784,1047],d=[.12,.12,.12,.25,.2,.12,.2,.7];let w=0;n.forEach((f,i)=>{beep(f,d[i]+.05,'square',.08,w);beep(f/2,d[i]+.05,'triangle',.08,w);w+=d[i];});}
+};
+
+/* ================= UI ================= */
+function readFields(){
+  const s={};let bad=false;
+  document.querySelectorAll('#ws [data-field]').forEach(el=>{
+    if(el.tagName==='SELECT'){s[el.dataset.field]=el.value;return;}
+    const v=el.value.trim().replace(/[−–—]/g,'-');
+    if(!/^-?\d+$/.test(v)){bad=true;s[el.dataset.field]=NaN;}else s[el.dataset.field]=parseInt(v,10);
+  });
+  return {s,bad};
+}
+function unlocked(i){return i===0||st.solved[i-1];}
+function renderTabs(){
+  $('cases').innerHTML=LEVELS.map((L,i)=>`<button class="mc-btn case-tab${i===st.lvl?' active':''}${st.solved[i]?' solved':''}" data-i="${i}" ${unlocked(i)?'':'disabled'}>${unlocked(i)?L.icon:'🔒'} Справа ${i+1}: ${L.name}</button>`).join('');
+  $('cases').querySelectorAll('button').forEach(b=>b.onclick=()=>{SFX.click();loadLevel(+b.dataset.i);});
+}
+function renderCounter(){
+  const n=st.solved.filter(Boolean).length;$('cnt').textContent=`${n}/4`;
+  $('slots').innerHTML=st.solved.map(v=>`<div class="slot${v?' on':''}" style="background-image:url(${turl(v?'amethyst':'bookshelf')})"></div>`).join('');
+}
+function setBadge(ok){const b=$('badge');b.className='badge '+(ok?'good':'bad');b.textContent=ok?'✅ ЛАБІРИНТ ПРАЦЮЄ':'⚠ ПОМИЛКА В КОДІ';}
+function feedback(kind,ico,html,extra=''){
+  const f=$('feedback');f.className='feedback';void f.offsetWidth;f.className='feedback '+kind;
+  f.innerHTML=`<div class="ico">${ico}</div><div class="msg">${html}</div>${extra}`;
+}
+function idleFeedback(){feedback('','🔎','Детективи, знайдіть помилку в коді праворуч, виправте значення і натисніть <span style="color:#5ee05e">«▶ Запустити дебаг»</span>!<small>Карта ліворуч показує, що зараз будує код. Жовта рамка — куди код поставив блоки.</small>');}
+function successFeedback(i){
+  const last=i===LEVELS.length-1;
+  feedback('ok','🏆',`СПРАВУ №${i+1} РОЗКРИТО! ✅<small style="color:#d6ffd6">${LEVELS[i].success}</small>`,
+    `<button class="mc-btn btn-next" id="btnNext">${last?'🏛️ Відкрити Архів Мудрості':'➜ Наступний рівень'}</button>`);
+  $('btnNext').onclick=()=>{SFX.unlock();if(last)showFinal();else loadLevel(i+1);};
+}
+function bindInputs(){
+  document.querySelectorAll('#ws [data-field]').forEach(el=>{
+    el.addEventListener('input',updateJs);el.addEventListener('change',updateJs);
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run();}});
+    if(el.tagName==='INPUT')el.addEventListener('focus',()=>el.select());
+  });
+}
+function updateJs(){
+  const {s}=readFields();const L=LEVELS[st.lvl];
+  const shown={...s};for(const k in shown)if(Number.isNaN(shown[k]))shown[k]='?';
+  $('js').textContent=L.js(shown);
+}
+function loadLevel(i){
+  st.lvl=i;const L=LEVELS[i];
+  document.querySelectorAll('.stamp,.orb,.flash').forEach(e=>e.remove());
+  st.applied={...(st.solved[i]?L.solution:L.defaults)};st.anim=st.solved[i]?{start:performance.now()-60000,ok:true}:null;st.hintStep=0;
+  $('mission').innerHTML=`<div class="case-num">СПРАВА<span>${i+1}</span>з 4</div><div>
+    <h2>${L.icon} ${L.name}</h2>
+    <p><span class="lbl">🗣 Свідчення:</span> ${L.evidence}</p>
+    <p><span class="lbl">🎯 Завдання:</span> ${L.goal}</p>
+    <details class="teacher"><summary>👩‍🏫 Для вчителя (відповідь)</summary><div>${L.teacher}</div></details></div>`;
+  $('ws').innerHTML=L.code(st.applied);
+  $('views').innerHTML=L.views.map(v=>`<div class="view"><div class="cap">${v.cap}</div><canvas></canvas></div>`).join('');
+  st.canvases=[...$('views').querySelectorAll('canvas')];
+  $('legend').innerHTML=L.legend();
+  bindInputs();updateJs();renderTabs();renderCounter();
+  setBadge(st.solved[i]);
+  $('worldPanel').classList.toggle('win',st.solved[i]);
+  if(st.solved[i])successFeedback(i);else idleFeedback();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function shakeFx(){
+  ['worldPanel','codePanel'].forEach(id=>{const p=$(id);p.classList.remove('shake');void p.offsetWidth;p.classList.add('shake');});
+  const fl=document.createElement('div');fl.className='flash';$('worldPanel').appendChild(fl);setTimeout(()=>fl.remove(),700);
+}
+function winFx(i){
+  const p=$('worldPanel');p.classList.add('win');
+  for(let k=0;k<22;k++){
+    const o=document.createElement('div');o.className='orb';
+    o.style.left=(10+Math.random()*80)+'%';o.style.top=(55+Math.random()*35)+'%';
+    o.style.setProperty('--dx',(Math.random()*160-80)+'px');o.style.setProperty('--dy',(-120-Math.random()*220)+'px');
+    o.style.animationDelay=(Math.random()*.6)+'s';p.appendChild(o);setTimeout(()=>o.remove(),2600);
+  }
+  const s=document.createElement('div');s.className='stamp';s.innerHTML=`СПРАВУ №${i+1}<br>РОЗКРИТО!`;p.appendChild(s);setTimeout(()=>s.remove(),2700);
+  const c=$('counter');c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump');
+}
+function run(){
+  ac();
+  const L=LEVELS[st.lvl];const {s,bad}=readFields();
+  document.querySelectorAll('.blink').forEach(e=>e.classList.remove('blink'));
+  if(bad){SFX.error();shakeFx();feedback('err','⛔','У білому полі має бути ціле число (наприклад: 0, 2, 10 або -1).');return;}
+  st.attempts++;
+  const res=L.check(s);
+  st.applied={...s};st.anim={start:performance.now(),ok:res.ok};
+  if(res.ok){
+    st.solved[st.lvl]=true;
+    SFX.success();winFx(st.lvl);setBadge(true);renderCounter();renderTabs();successFeedback(st.lvl);
+  }else{
+    st.errors++;SFX.error();shakeFx();setBadge(false);$('worldPanel').classList.remove('win');
+    feedback('err','❌',`${res.msg}<small>Подивіться на карту — вона вже показує, що збудував ваш код. Спробуйте ще раз!</small>`);
+  }
+}
+function hint(){
+  const L=LEVELS[st.lvl];st.hints++;SFX.hint();
+  const k=Math.min(st.hintStep,L.hints.length-1);
+  feedback('hint','💡',`Підказка ${k+1}/${L.hints.length}: ${L.hints[k]}`);
+  if(k>=1)document.querySelectorAll('#ws [data-field]').forEach(el=>{const t=el.tagName==='SELECT'?el.parentElement:el;t.classList.remove('blink');void t.offsetWidth;t.classList.add('blink');});
+  st.hintStep++;
+}
+function reset(){
+  SFX.click();const L=LEVELS[st.lvl];
+  st.applied={...L.defaults};st.anim=null;st.hintStep=0;
+  $('ws').innerHTML=L.code(st.applied);bindInputs();updateJs();setBadge(false);$('worldPanel').classList.remove('win');idleFeedback();
+}
+function showFinal(){
+  const secs=Math.round((Date.now()-st.start)/1000);
+  $('stats').innerHTML=[['🕵️ справ розкрито','4/4'],['▶ запусків коду',st.attempts],['🐞 спіймано помилок',st.errors],['💡 підказок',st.hints],['⏱ час',`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`]]
+    .map(([l,v])=>`<div class="stat"><b>${v}</b>${l}</div>`).join('');
+  $('final').classList.add('show');SFX.fanfare();
+  const names=['amethyst','bookshelf','bricks','grass_side','lava0','planks','stone'];
+  for(let k=0;k<60;k++){
+    const c=document.createElement('div');c.className='cf';
+    c.style.left=Math.random()*100+'vw';c.style.backgroundImage=`url(${turl(names[k%names.length])})`;
+    c.style.setProperty('--r',(Math.random()*720-360)+'deg');
+    c.style.animationDuration=(2.5+Math.random()*3)+'s';c.style.animationDelay=(Math.random()*2.5)+'s';
+    $('final').appendChild(c);setTimeout(()=>c.remove(),8500);
+  }
+}
+
+/* ================= Render loop ================= */
+function frame(t){
+  const L=LEVELS[st.lvl];
+  if(L&&st.canvases.length&&st.applied){
+    let prev=null;const a=document.activeElement;
+    if(a&&a.matches&&a.matches('#ws input[data-field]'))prev=readFields().s;
+    try{L.draw(st.canvases,st.applied,t,st.anim,prev);}catch(e){console.error(e);}
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ================= Init ================= */
+(function init(){
+  const sp=$('sparks');
+  for(let k=0;k<26;k++){const d=document.createElement('div');d.className='spark'+(k%3===0?' g':'');
+    d.style.left=Math.random()*100+'vw';d.style.setProperty('--dx',(Math.random()*120-60)+'px');
+    d.style.animationDuration=(9+Math.random()*12)+'s';d.style.animationDelay=(-Math.random()*20)+'s';sp.appendChild(d);}
+  $('shelves').innerHTML=Array.from({length:7},(_,i)=>`<div style="background-image:url(${turl(i===3?'amethyst':'bookshelf')});animation-delay:${i*.15}s"></div>`).join('');
+  $('btnRun').onclick=run;$('btnHint').onclick=hint;$('btnReset').onclick=reset;
+  $('btnSound').onclick=()=>{st.sound=!st.sound;$('btnSound').textContent=st.sound?'🔊':'🔇';if(st.sound)SFX.click();};
+  $('btnFull').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();else document.exitFullscreen();};
+  const setFont=d=>{st.fontSize=Math.max(13,Math.min(26,st.fontSize+d));document.documentElement.style.fontSize=st.fontSize+'px';};
+  $('btnFontUp').onclick=()=>setFont(1);$('btnFontDown').onclick=()=>setFont(-1);
+  $('btnAgain').onclick=()=>{$('final').classList.remove('show');st.solved=[false,false,false,false];st.attempts=st.errors=st.hints=0;st.start=Date.now();SFX.unlock();loadLevel(0);};
+  $('btnCloseFinal').onclick=()=>$('final').classList.remove('show');
+  loadLevel(0);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
