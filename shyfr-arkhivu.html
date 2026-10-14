@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Шифр Архіву</title>
+<style>
+:root{
+  --bg:#1b1430; --bar:#120c22; --panel:#2a2045; --text:#fff8e7; --gold:#ffcf4a;
+  --cmd:#e8613c; --cmdDark:#a9391a; --cyan:#5ee6ff; --cell:40px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:"Trebuchet MS","Segoe UI",Verdana,Arial,sans-serif;user-select:none}
+body{background:
+  radial-gradient(ellipse at 30% 40%,#2c1f4d 0,transparent 60%),
+  radial-gradient(ellipse at 90% 90%,#241a3f 0,transparent 50%),var(--bg)}
+button{font:inherit;cursor:pointer}
+#app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+
+/* ---------- верхня панель ---------- */
+#top{display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--bar);border-bottom:4px solid #0a0614;flex-wrap:wrap}
+.title{font-size:32px;font-weight:900;letter-spacing:2px;color:var(--gold);text-shadow:3px 3px 0 #000;margin-right:auto;white-space:nowrap}
+.btn{font-size:24px;font-weight:800;border:none;border-radius:12px;padding:8px 18px;color:#fff;background:#4b3a7c;
+  box-shadow:0 5px 0 #241a40;transition:transform .05s,filter .15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #241a40}
+.btn:disabled{opacity:.45;cursor:default;filter:none}
+.seg{display:flex;background:#0a0614;border-radius:14px;padding:4px;gap:4px}
+.seg .btn{background:transparent;box-shadow:none;color:#bfb2e6}
+.seg .btn.on{background:var(--gold);color:#2a1a00;box-shadow:0 4px 0 #a37b10}
+#bHint{background:#1f86b8;box-shadow:0 5px 0 #0d4a69}
+#bFast{background:#7a3fc4;box-shadow:0 5px 0 #43206f}
+#bReset{background:#b23a48;box-shadow:0 5px 0 #6a1a24}
+#bMute{background:#3a3155;width:64px;padding:8px 0}
+
+/* ---------- основна сітка ---------- */
+#main{display:grid;grid-template-columns:60fr 40fr;min-height:0}
+#left{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;overflow:hidden}
+#right{display:flex;flex-direction:column;gap:12px;padding:12px 16px 12px 6px;min-height:0;min-width:0}
+
+/* ---------- лабіринт ---------- */
+#maze{position:relative;width:calc(var(--cell)*21);height:calc(var(--cell)*22);display:grid;
+  grid-template-columns:repeat(21,var(--cell));grid-template-rows:repeat(22,var(--cell));
+  border-radius:6px;box-shadow:0 0 0 6px #0a0614,0 18px 40px rgba(0,0,0,.6)}
+.cell{position:relative}
+.floor,.t-wall,.t-ame{background:
+  linear-gradient(#c3bcae,#c3bcae) 20% 25%/12% 12% no-repeat,
+  linear-gradient(#e4dfd4,#e4dfd4) 72% 68%/12% 12% no-repeat,
+  #d6d0c3;box-shadow:inset 0 0 0 1px rgba(70,55,40,.16)}
+.t-wall .face{position:absolute;inset:0;background:
+  linear-gradient(#a24dff,#a24dff) 22% 28%/12% 20% no-repeat,
+  linear-gradient(#d39bff,#d39bff) 22% 50%/12% 10% no-repeat,
+  linear-gradient(#7b2ae0,#7b2ae0) 70% 62%/12% 16% no-repeat,
+  linear-gradient(#2c1748,#2c1748) 78% 14%/22% 22% no-repeat,
+  linear-gradient(#24123d,#24123d) 12% 82%/26% 14% no-repeat,
+  #170b28;
+  box-shadow:inset 0 0 0 1px #07030f,inset 3px 3px 0 rgba(255,255,255,.07),inset -3px -3px 0 rgba(0,0,0,.45)}
+.t-wall.v1 .face{background:
+  linear-gradient(#a24dff,#a24dff) 64% 20%/12% 22% no-repeat,
+  linear-gradient(#d39bff,#d39bff) 64% 44%/12% 10% no-repeat,
+  linear-gradient(#7b2ae0,#7b2ae0) 18% 70%/12% 14% no-repeat,
+  linear-gradient(#2c1748,#2c1748) 14% 12%/22% 22% no-repeat,
+  linear-gradient(#24123d,#24123d) 80% 84%/22% 14% no-repeat,
+  #170b28}
+.t-wall.v2 .face{background:
+  linear-gradient(#8a3cf0,#8a3cf0) 40% 60%/12% 24% no-repeat,
+  linear-gradient(#d39bff,#d39bff) 40% 86%/12% 10% no-repeat,
+  linear-gradient(#2c1748,#2c1748) 80% 30%/24% 24% no-repeat,
+  linear-gradient(#24123d,#24123d) 10% 16%/24% 18% no-repeat,
+  #1a0d2d}
+.t-ame .face{position:absolute;inset:0;background:
+  linear-gradient(#fff,#fff) 26% 22%/10% 10% no-repeat,
+  linear-gradient(#f4dcff,#f4dcff) 66% 58%/10% 10% no-repeat,
+  linear-gradient(135deg,#efc4ff 0 22%,#c06bff 22% 48%,#8c2fe6 48% 72%,#d08dff 72% 100%);
+  box-shadow:inset 0 0 0 2px #5b1aa8,inset -4px -4px 0 rgba(60,0,120,.45),0 0 10px rgba(200,110,255,.7)}
+.t-grass{background:
+  linear-gradient(#4e9b2f,#4e9b2f) 18% 30%/12% 12% no-repeat,
+  linear-gradient(#78c94f,#78c94f) 70% 70%/12% 12% no-repeat,
+  linear-gradient(#4e9b2f,#4e9b2f) 80% 20%/12% 12% no-repeat,
+  #62b33c}
+.t-start{background:
+  repeating-linear-gradient(45deg,#ffd84a 0 6px,#2a1a00 6px 12px);box-shadow:inset 0 0 0 4px #62b33c}
+.t-start::after{content:"";position:absolute;inset:22%;background:#62b33c}
+.t-pass{background:
+  linear-gradient(#bff4ff,#bff4ff) 12% 12%/14% 14% no-repeat,
+  radial-gradient(circle,#8bedff 0,#38c6f4 70%);box-shadow:inset 0 0 0 2px #1584b8,0 0 14px 2px rgba(94,230,255,.85);z-index:1}
+.t-door{background:#d6d0c3}
+.t-door .dl,.t-door .dr{position:absolute;top:4%;bottom:0;width:46%;background:
+  linear-gradient(#fff3a8,#fff3a8) 70% 55%/18% 12% no-repeat,
+  linear-gradient(180deg,#ffe066,#e6a812);box-shadow:inset 0 0 0 2px #8a5a00;transition:transform 1.2s ease-in,opacity 1.2s}
+.t-door .dl{left:4%;border-radius:40% 0 0 0}
+.t-door .dr{right:4%;border-radius:0 40% 0 0}
+.t-door .dr{background:linear-gradient(#fff3a8,#fff3a8) 30% 55%/18% 12% no-repeat,linear-gradient(180deg,#ffe066,#e6a812)}
+.t-door{box-shadow:0 0 16px 4px rgba(255,207,74,.8);z-index:1}
+.t-door .light{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;
+  background:radial-gradient(circle,#fffbe0 0,rgba(255,230,120,.9) 25%,rgba(255,200,60,.4) 55%,transparent 72%);
+  opacity:0;transition:transform 2.2s ease-out,opacity 1s;pointer-events:none;z-index:6}
+.t-door.open .dl{transform:translateX(-90%) scaleX(.2)}
+.t-door.open .dr{transform:translateX(90%) scaleX(.2)}
+.t-door.open .light{opacity:1;transform:scale(70)}
+
+.ltr{position:absolute;inset:8%;display:flex;align-items:center;justify-content:center;transition:transform .35s,opacity .35s;z-index:2}
+.ltr svg,.slot svg,.fly svg{width:100%;height:100%;fill:currentColor;display:block}
+.t-pass .ltr{color:#fff;filter:drop-shadow(1px 1px 0 #0b4f80) drop-shadow(-1px -1px 0 #0b4f80) drop-shadow(0 0 4px #fff)}
+.floor .ltr{color:#ffb02e;filter:drop-shadow(1px 1px 0 #6a3500) drop-shadow(-1px -1px 0 #6a3500) drop-shadow(0 0 4px #ffd27a)}
+.ltr.gone{opacity:0;transform:scale(.2) translateY(-60%)}
+.t-pass.used{filter:saturate(.55) brightness(.95)}
+
+.cell.hit .face{animation:hit .4s}
+@keyframes hit{0%,100%{filter:none}40%{filter:brightness(1.8) sepia(1) hue-rotate(-50deg) saturate(5)}}
+.cell.hint::after{content:"";position:absolute;inset:-8px;border:5px solid #fff35a;border-radius:8px;z-index:8;
+  box-shadow:0 0 18px 6px #fff35a;animation:pulse .6s ease-in-out infinite alternate;pointer-events:none}
+@keyframes pulse{from{transform:scale(.9);opacity:.6}to{transform:scale(1.15);opacity:1}}
+
+/* стіни опускаються */
+.fall .face{animation:sink .9s ease-in forwards}
+@keyframes sink{0%{transform:none}25%{transform:translateY(-10%)}100%{transform:translateY(25%) scale(.05);opacity:0}}
+
+/* дослідник */
+#hero{position:absolute;width:calc(100%/21);height:calc(100%/22);z-index:5;transition:left .26s linear,top .26s linear;pointer-events:none}
+#hero .sprite{position:absolute;inset:-6%;filter:drop-shadow(0 3px 0 rgba(0,0,0,.45))}
+#hero .sprite svg{width:100%;height:100%;display:block}
+#hero.flip .sprite svg{transform:scaleX(-1)}
+#hero.hop .sprite{animation:hop .26s}
+@keyframes hop{50%{transform:translateY(-14%)}}
+#hero.bump .sprite{animation:shake .45s}
+@keyframes shake{0%,100%{transform:none}15%{transform:translate(var(--bx),var(--by)) rotate(-8deg)}35%{transform:translate(-8%,0) rotate(6deg)}55%{transform:translate(8%,0) rotate(-6deg)}75%{transform:translate(-4%,0)}}
+
+/* повідомлення */
+#toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-30px);max-width:88%;padding:14px 26px;
+  background:#fff8e7;color:#2a1640;font-size:28px;font-weight:800;line-height:1.25;border-radius:16px;
+  box-shadow:0 0 0 5px #2a1640,0 10px 0 5px rgba(0,0,0,.35);opacity:0;transition:opacity .25s,transform .25s;
+  z-index:20;text-align:center;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.bad{background:#ffe0dc;box-shadow:0 0 0 5px #b3261e,0 10px 0 5px rgba(0,0,0,.35)}
+#toast.good{background:#e2fbff;box-shadow:0 0 0 5px #1584b8,0 10px 0 5px rgba(0,0,0,.35)}
+
+/* ---------- правий бік ---------- */
+.lbl{font-size:24px;font-weight:900;letter-spacing:1px;margin:0 0 6px 4px;color:#e8dcff}
+#scrollBox{flex:none;position:relative;padding:10px 36px 12px;border-radius:10px;
+  background:linear-gradient(180deg,#f7e7bd,#e9cf8f);color:#5a3410;box-shadow:inset 0 0 0 3px #b98a3e}
+#scrollBox::before,#scrollBox::after{content:"";position:absolute;top:-6px;bottom:-6px;width:22px;border-radius:10px;
+  background:linear-gradient(90deg,#a8742c,#e8c47c,#a8742c);box-shadow:0 0 0 3px #6d4512}
+#scrollBox::before{left:-4px}#scrollBox::after{right:-4px}
+#scrollBox .lbl{color:#5a3410;margin:0 0 6px}
+#slots{display:flex;gap:10px;justify-content:center}
+.slot{width:var(--sw,76px);height:var(--sw,76px);flex:none;border-radius:8px;background:rgba(255,255,255,.45);
+  border:4px dashed #b98a3e;padding:10px;color:#4a2306}
+.slot.full{border-style:solid;background:#fffaf0;animation:popIn .35s}
+.slot.pending svg{visibility:hidden}
+@keyframes popIn{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:none}}
+#scrollBox.ok .slot.full{border-color:#2c9d4b;background:#e6ffe9;color:#145c25}
+
+#progBox{flex:1;min-height:0;display:flex;flex-direction:column}
+#prog{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 20px;border-radius:12px;
+  background:radial-gradient(circle,#cfd6de 1.5px,transparent 2px) 0 0/22px 22px,#e8edf2;box-shadow:inset 0 0 0 3px #9aa7b4}
+.blk{position:relative;display:flex;align-items:center;gap:10px;width:max-content;max-width:100%;min-height:52px;
+  padding:6px 18px 8px 14px;border-radius:8px;font-size:26px;font-weight:800;color:#fff;background:var(--cmd);
+  box-shadow:inset 0 -5px 0 var(--cmdDark);text-shadow:1px 1px 0 rgba(0,0,0,.25);margin-bottom:2px;cursor:default}
+.blk::after{content:"";position:absolute;left:18px;bottom:-8px;width:26px;height:9px;background:var(--cmdDark);border-radius:0 0 6px 6px;z-index:3}
+.blk .num{display:inline-block;min-width:44px;text-align:center;background:#fff;color:#a9391a;border-radius:20px;padding:0 10px;text-shadow:none}
+.blk .ico{width:30px;height:30px;flex:none}
+.blk .ico svg{width:100%;height:100%;fill:#fff}
+.blk .idx{font-size:20px;opacity:.85;min-width:26px}
+.blk.hat{background:#d4a017;box-shadow:inset 0 -5px 0 #8f6a00;border-radius:22px 22px 8px 8px;padding-top:10px}
+.blk.hat::after{background:#8f6a00}
+.blk.active{outline:5px solid #fff35a;box-shadow:inset 0 -5px 0 var(--cmdDark),0 0 18px 6px #fff35a}
+.blk.error{background:#d62828;box-shadow:inset 0 -5px 0 #7d0e0e,0 0 0 4px #fff;animation:shakeB .45s}
+.blk.error::after{background:#7d0e0e}
+.blk.done{opacity:.92}
+.blk.sel{outline:5px dashed #1f2a6b;outline-offset:2px}
+.blk.ghost{background:transparent;color:#7a5a50;border:3px dashed #c97d63;box-shadow:none;text-shadow:none;opacity:.85}
+.blk.ghost::after{display:none}
+.blk.ghost .num{background:#f3d4c8;color:#7a3a1a}
+.blk.ghost .ico svg{fill:#b4684d}
+.blk.newb{animation:popIn .3s}
+.blk .del{margin-left:8px;font-size:22px;font-weight:900;background:#1f2a6b;color:#fff;border:none;border-radius:8px;padding:2px 10px}
+@keyframes shakeB{0%,100%{transform:none}25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+.prog-mode .blk.cmd{cursor:pointer}
+
+#ctrlBox{flex:none;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;background:var(--panel);box-shadow:inset 0 0 0 3px #3e3266}
+#editNote{font-size:24px;font-weight:800;color:#9fe3ff;text-align:center;display:none}
+#editNote.show{display:block}
+.arrows{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.arr{min-height:112px;min-width:100px;border:none;border-radius:14px;background:#3e6fd8;color:#fff;font-size:24px;font-weight:900;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 6px 0 #1f3f8a}
+.arr svg{width:52px;height:52px;fill:#fff}
+.arr:active{transform:translateY(3px);box-shadow:0 3px 0 #1f3f8a}
+.arr.on{background:var(--gold);color:#3a2500;box-shadow:0 6px 0 #a37b10,0 0 0 4px #fff}
+.arr.on svg{fill:#3a2500}
+.row{display:flex;align-items:center;gap:10px}
+.stepper{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:900}
+.pm{width:64px;height:64px;border:none;border-radius:12px;background:#5b4a91;color:#fff;font-size:36px;font-weight:900;box-shadow:0 5px 0 #2f2456}
+.pm:active{transform:translateY(3px);box-shadow:0 2px 0 #2f2456}
+#num{width:76px;height:64px;border-radius:12px;background:#fff;color:#2a1640;font-size:42px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 4px var(--gold)}
+#bRun{margin-left:auto;background:#2c9d4b;box-shadow:0 5px 0 #145c25;font-size:28px;padding:12px 22px}
+#bAdd{flex:1.3;background:var(--cmd);box-shadow:0 5px 0 var(--cmdDark);font-size:26px;padding:14px 10px}
+#bUndo{flex:1;background:#5a5470;box-shadow:0 5px 0 #2e2a3d;font-size:24px;padding:14px 10px}
+.hidden{display:none !important}
+
+/* ---------- фінал і вікна ---------- */
+#banner{position:absolute;left:50%;bottom:5%;transform:translate(-50%,0) scale(.7);opacity:0;pointer-events:none;
+  z-index:30;min-width:62%;max-width:92%;padding:28px 36px;border-radius:22px;text-align:center;
+  background:#fff8e7;color:#2a1640;box-shadow:0 0 0 7px #2a1640,0 20px 0 7px rgba(0,0,0,.35);transition:transform .4s cubic-bezier(.2,1.6,.4,1),opacity .3s}
+#banner.show{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+#banner h2{margin:0 0 10px;font-size:42px;line-height:1.15}
+#banner p{margin:6px 0;font-size:30px;font-weight:700}
+#banner .sum{display:inline-block;margin:12px 0 16px;padding:8px 20px;border-radius:12px;background:#2a1640;color:var(--gold);font-size:32px;font-weight:900}
+#banner.win{background:linear-gradient(#fffbe6,#ffe9a8);box-shadow:0 0 0 7px #a37b10,0 0 60px 20px rgba(255,220,100,.7)}
+#banner.fail{box-shadow:0 0 0 7px #b3261e,0 20px 0 7px rgba(0,0,0,.35)}
+#banner .btn{font-size:30px;padding:12px 30px;background:#2c9d4b;box-shadow:0 6px 0 #145c25}
+#modalBg{position:fixed;inset:0;background:rgba(10,6,20,.7);display:none;align-items:center;justify-content:center;z-index:50}
+#modalBg.show{display:flex}
+#modal{position:relative;width:min(900px,90vw);padding:36px 44px;border-radius:22px;background:#fff8e7;color:#2a1640;text-align:center;box-shadow:0 0 0 7px #7a3fc4}
+#modal h2{font-size:34px;margin:0 0 14px;color:#7a3fc4}
+#modal p{font-size:36px;font-weight:800;margin:0 0 24px}
+#answer{font-size:64px;font-weight:900;color:#2c9d4b;margin:0 0 10px;display:none;animation:popIn .4s}
+#answer.show{display:block}
+#mClose{position:absolute;right:14px;top:12px;background:#b23a48;box-shadow:0 4px 0 #6a1a24}
+#bAnswer{background:#7a3fc4;box-shadow:0 5px 0 #43206f;font-size:28px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+.fly{position:fixed;z-index:60;color:#fff;pointer-events:none;
+  transition:left .7s cubic-bezier(.5,-0.3,.4,1),top .7s cubic-bezier(.3,0,.5,1.3),width .7s,height .7s;
+  filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px var(--cyan))}
+.fly.false{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #ffb02e)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="title">🔐 Шифр Архіву</div>
+    <div class="seg" role="group" aria-label="Режим">
+      <button class="btn on" id="mStep">👣 Крок за кроком</button>
+      <button class="btn" id="mProg">📜 Уся програма</button>
+    </div>
+    <button class="btn" id="bHint">💡 Підказка</button>
+    <button class="btn" id="bFast">⚡ Для швидких</button>
+    <button class="btn" id="bReset">↺ Скинути</button>
+    <button class="btn" id="bMute" title="Звук">🔊</button>
+  </header>
+  <main id="main">
+    <section id="left">
+      <div id="maze"></div>
+      <div id="toast"></div>
+      <div id="banner"></div>
+    </section>
+    <aside id="right">
+      <section id="scrollBox">
+        <div class="lbl">📜 Сувій пароля</div>
+        <div id="slots"></div>
+      </section>
+      <section id="progBox">
+        <div class="lbl">🧩 Програма</div>
+        <div id="prog"></div>
+      </section>
+      <section id="ctrlBox">
+        <div id="editNote"></div>
+        <div class="arrows">
+          <button class="arr on" data-dir="up"></button>
+          <button class="arr" data-dir="down"></button>
+          <button class="arr" data-dir="left"></button>
+          <button class="arr" data-dir="right"></button>
+        </div>
+        <div class="row">
+          <div class="stepper">
+            <span>Кроків:</span>
+            <button class="pm" id="bMinus">−</button>
+            <div id="num">1</div>
+            <button class="pm" id="bPlus">+</button>
+          </div>
+          <button class="btn hidden" id="bRun">▶ Запуск</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="bAdd">➕ Додати команду</button>
+          <button class="btn" id="bUndo">✕ Прибрати останню</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+<div id="modalBg">
+  <div id="modal">
+    <button class="btn" id="mClose">✕</button>
+    <h2>⚡ Питання для швидких</h2>
+    <p>Скільки всього кроків у правильному маршруті?</p>
+    <div id="answer">23 кроки! 🎉</div>
+    <button class="btn" id="bAnswer">Показати відповідь</button>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+"use strict";
+/* ================= КАРТА (рядок 0 — верх) ================= */
+const MAP = [
+  "#####################",
+  "#...................#",
+  "#.#################.#",
+  "#.#...............#.#",
+  "#.#.#############.#.#",
+  "#.#.#...........#.#.#",
+  "#.#.#.#########.#.#.#",
+  "#.#.#.#.......#.#.#.#",
+  "#.#.#.#.#####.#.#.#.#",
+  "#.#.#.#.#...#.#.#.#.#",
+  "#.#.#.#.#.@.#.#.#.#.#",
+  "#.#.#.#.#...#.#.#.#.#",
+  "#.#.#.#.##5##.#.#.#.#",
+  "#.#.#.#.*f..e*#.#.#.#",
+  "#.#.#.#####4###.#.#.#",
+  "#.#.#*.......d*.#.#.#",
+  "#.#.##3##########.#.#",
+  "#.#..*....c*......#.#",
+  "#.######2##########.#",
+  "#.*a.......b*.......#",
+  "####1################",
+  ",,,,S,,,,,,,,,,,,,,,,"
+];
+const ROWS = 22, COLS = 21;
+console.assert(MAP.length === ROWS && MAP.every(r => r.length === COLS), "Карта має бути 22×21");
+const LETTERS = {"1":"А","2":"Р","3":"Х","4":"І","5":"В","a":"Л","b":"К","c":"М","d":"Б","e":"Ж","f":"Ч"};
+const PASSWORD = "АРХІВ";
+const DIRS = {
+  up:    {dr:-1, dc:0,  word:"вгору",    label:"Вгору",    rot:0},
+  down:  {dr:1,  dc:0,  word:"вниз",     label:"Вниз",     rot:180},
+  left:  {dr:0,  dc:-1, word:"ліворуч",  label:"Ліворуч",  rot:270},
+  right: {dr:0,  dc:1,  word:"праворуч", label:"Праворуч", rot:90}
+};
+let START = null, DOOR = null;
+MAP.forEach((row, r) => [...row].forEach((ch, c) => {
+  if (ch === "S") START = {r, c};
+  if (ch === "@") DOOR = {r, c};
+}));
+
+/* ================= Піксельний шрифт 5×7 ================= */
+const FONT = {
+  "А":[".###.","#...#","#...#","#####","#...#","#...#","#...#"],
+  "Р":["####.","#...#","#...#","####.","#....","#....","#...."],
+  "Х":["#...#","#...#",".#.#.","..#..",".#.#.","#...#","#...#"],
+  "І":[".###.","..#..","..#..","..#..","..#..","..#..",".###."],
+  "В":["####.","#...#","#...#","####.","#...#","#...#","####."],
+  "Л":["..###",".#..#",".#..#",".#..#",".#..#",".#..#","#...#"],
+  "К":["#...#","#..#.","#.#..","##...","#.#..","#..#.","#...#"],
+  "М":["#...#","##.##","#.#.#","#.#.#","#...#","#...#","#...#"],
+  "Б":["#####","#....","#....","####.","#...#","#...#","####."],
+  "Ж":["#.#.#","#.#.#",".###.","..#..",".###.","#.#.#","#.#.#"],
+  "Ч":["#...#","#...#","#...#",".####","....#","....#","....#"]
+};
+function glyph(ch){
+  let s = "";
+  FONT[ch].forEach((row, y) => [...row].forEach((p, x) => {
+    if (p === "#") s += `<rect x="${x}" y="${y}" width="1.03" height="1.03"/>`;
+  }));
+  return `<svg viewBox="-1 -1 7 9" shape-rendering="crispEdges">${s}</svg>`;
+}
+const ARROW_SVG = rot => `<svg viewBox="0 0 10 10" shape-rendering="crispEdges"><g transform="rotate(${rot} 5 5)"><path d="M5 0.5 L9.5 5 H6.6 V9.5 H3.4 V5 H0.5 Z"/></g></svg>`;
+
+/* Дослідник — власний піксельний персонаж */
+const HERO_SVG = (() => {
+  const P = {
+    k:"#2b1a0e", h:"#8a5a2b", b:"#3b2412", s:"#f2c08a", e:"#1a1a1a", t:"#1f9e8f", g:"#c0392b", l:"#5b3a1a", p:"#3a3f6b", w:"#ffffff"
+  };
+  const art = [
+    "....kkkk....",
+    "...khhhhk...",
+    "...hbbbbh...",
+    ".khhhhhhhhk.",
+    "...ssssss...",
+    "...swsswss..",
+    "...sesses...",
+    "...ssssss...",
+    "ggtttttttts.",
+    "ggstttttts..",
+    "gg.llllll...",
+    "...pp..pp...",
+    "...kk..kk..."
+  ];
+  let s = "";
+  art.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (P[ch]) s += `<rect x="${x}" y="${y}" width="1.03" height="1.03" fill="${P[ch]}"/>`;
+  }));
+  return `<svg viewBox="0 -0.5 12 13.5" shape-rendering="crispEdges">${s}</svg>`;
+})();
+
+/* ================= ЗВУК (Web Audio) ================= */
+let actx = null, muted = false;
+function ac(){
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } }
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+function tone(freq, dur, type = "square", vol = 0.08, delay = 0, slideTo = null){
+  if (muted) return;
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(dur, vol = 0.25, freq = 400){
+  if (muted) return;
+  const a = ac(); if (!a) return;
+  const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = "lowpass"; f.frequency.value = freq; g.gain.value = vol;
+  src.connect(f).connect(g).connect(a.destination); src.start();
+}
+const SND = {
+  step(){ tone(180 + Math.random() * 40, 0.07, "square", 0.04); noise(0.05, 0.08, 1200); },
+  click(){ tone(660, 0.05, "square", 0.05); tone(990, 0.06, "square", 0.04, 0.04); },
+  chime(){ tone(988, 0.3, "sine", 0.16); tone(1319, 0.35, "sine", 0.13, 0.08); tone(1976, 0.45, "triangle", 0.06, 0.16); },
+  oddChime(){ tone(700, 0.25, "triangle", 0.13); tone(560, 0.35, "triangle", 0.12, 0.12); },
+  bump(){ tone(110, 0.25, "sine", 0.35, 0, 45); noise(0.18, 0.35, 300); },
+  fanfare(){
+    const n = [523, 659, 784, 1047, 784, 1047];
+    const d = [0, 0.15, 0.3, 0.45, 0.68, 0.8];
+    n.forEach((f, i) => { tone(f, i === 5 ? 0.9 : 0.18, "square", 0.07, d[i]); tone(f / 2, i === 5 ? 0.9 : 0.18, "triangle", 0.08, d[i]); });
+    [1047, 1319, 1568].forEach(f => tone(f, 1.1, "sine", 0.06, 0.8));
+  },
+  fail(){ tone(392, 0.25, "sawtooth", 0.06); tone(311, 0.3, "sawtooth", 0.06, 0.25); tone(247, 0.5, "sawtooth", 0.06, 0.55); }
+};
+
+/* ================= СТАН ================= */
+const $ = s => document.querySelector(s);
+const mazeEl = $("#maze"), progEl = $("#prog"), slotsEl = $("#slots");
+const STEP_MS = 290;
+let mode = "step";          // "step" | "prog"
+let cmds = [];              // {dir, n, status}
+let sel = {dir:"up", n:1};
+let selectedIdx = null;     // редагування блоку в режимі «Уся програма»
+let busy = false;
+let st = null;              // стан світу
+const cellEls = [];
+let hero, toastTimer = null, newBlockIdx = -1;
+
+function freshState(){
+  return {r:START.r, c:START.c, scroll:[], taken:new Set(), steps:0, finished:false, facing:"up"};
+}
+function cellKind(r, c){
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return "edge";
+  const ch = MAP[r][c];
+  if (ch === "#") return "wall";
+  if (ch === "*") return "ame";
+  if (ch === ",") return "edge";
+  return "open";
+}
+/* Один крок: змінює стан, повертає подію */
+function tryStep(s, dir){
+  const d = DIRS[dir];
+  const nr = s.r + d.dr, nc = s.c + d.dc;
+  s.facing = dir;
+  const kind = cellKind(nr, nc);
+  if (kind !== "open") return {ok:false, kind, r:nr, c:nc};
+  s.r = nr; s.c = nc; s.steps++;
+  const ch = MAP[nr][nc], key = nr + "," + nc;
+  const ev = {ok:true, r:nr, c:nc};
+  if (LETTERS[ch] && !s.taken.has(key)) {
+    s.taken.add(key);
+    s.scroll.push(LETTERS[ch]);
+    ev.letter = LETTERS[ch];
+    ev.real = /[1-5]/.test(ch);
+  }
+  if (ch === "@") ev.door = true;
+  return ev;
+}
+
+/* ================= ПОБУДОВА КАРТИ ================= */
+function buildMaze(){
+  mazeEl.innerHTML = "";
+  for (let r = 0; r < ROWS; r++) {
+    cellEls[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      const ch = MAP[r][c];
+      const el = document.createElement("div");
+      el.className = "cell";
+      if (ch === "#") { el.classList.add("t-wall", "v" + ((r * 7 + c * 13) % 3)); el.innerHTML = '<div class="face"></div>'; }
+      else if (ch === "*") { el.classList.add("t-ame"); el.innerHTML = '<div class="face"></div>'; }
+      else if (ch === ",") el.classList.add("t-grass");
+      else if (ch === "S") el.classList.add("t-start");
+      else if (ch === "@") { el.classList.add("t-door"); el.innerHTML = '<div class="dl"></div><div class="dr"></div><div class="light"></div>'; }
+      else if (/[1-5]/.test(ch)) { el.classList.add("t-pass"); el.innerHTML = `<div class="ltr">${glyph(LETTERS[ch])}</div>`; }
+      else if (/[a-f]/.test(ch)) { el.classList.add("floor"); el.innerHTML = `<div class="ltr">${glyph(LETTERS[ch])}</div>`; }
+      else el.classList.add("floor");
+      mazeEl.appendChild(el);
+      cellEls[r][c] = el;
+    }
+  }
+  hero = document.createElement("div");
+  hero.id = "hero";
+  hero.innerHTML = `<div class="sprite">${HERO_SVG}</div>`;
+  mazeEl.appendChild(hero);
+}
+function fitMaze(){
+  const L = $("#left");
+  const cell = Math.max(16, Math.floor(Math.min((L.clientWidth - 40) / COLS, (L.clientHeight - 30) / ROWS)));
+  document.documentElement.style.setProperty("--cell", cell + "px");
+}
+function placeHero(instant){
+  if (instant) hero.style.transition = "none";
+  hero.style.left = (st.c * 100 / COLS) + "%";
+  hero.style.top = (st.r * 100 / ROWS) + "%";
+  hero.classList.toggle("flip", st.facing === "left");
+  if (instant) { void hero.offsetWidth; hero.style.transition = ""; }
+}
+function renderMapLetters(){
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const el = cellEls[r][c], l = el.querySelector(".ltr");
+    if (!l) continue;
+    const taken = st.taken.has(r + "," + c);
+    l.classList.toggle("gone", taken);
+    el.classList.toggle("used", taken);
+  }
+}
+function restoreWorldVisuals(){
+  mazeEl.querySelectorAll(".fall").forEach(e => e.classList.remove("fall"));
+  cellEls[DOOR.r][DOOR.c].classList.remove("open");
+  $("#scrollBox").classList.remove("ok");
+}
+
+/* ================= СУВІЙ ================= */
+function renderScroll(pendingIdx = -1){
+  const n = Math.max(5, st.scroll.length);
+  const w = Math.min(76, Math.floor((slotsEl.clientWidth - (n - 1) * 10) / n));
+  slotsEl.style.setProperty("--sw", w + "px");
+  slotsEl.innerHTML = "";
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement("div");
+    d.className = "slot";
+    if (i < st.scroll.length) {
+      d.classList.add("full");
+      if (i === pendingIdx) d.classList.add("pending");
+      d.innerHTML = glyph(st.scroll[i]);
+    }
+    slotsEl.appendChild(d);
+  }
+}
+
+/* ================= ПРОГРАМА ================= */
+function blockHTML(cmd, i){
+  const d = DIRS[cmd.dir];
+  return `<span class="idx">${i + 1}.</span><span class="ico">${ARROW_SVG(d.rot)}</span><span>рухатися ${d.word}</span><span class="num">${cmd.n}</span>`;
+}
+function renderProg(){
+  progEl.classList.toggle("prog-mode", mode === "prog");
+  let html = `<div class="blk hat" style="z-index:${cmds.length + 2}">${mode === "prog" ? "▶ коли натиснуто «Запуск»" : "👣 крок за кроком"}</div>`;
+  cmds.forEach((c, i) => {
+    const cls = ["blk", "cmd"];
+    if (c.status) cls.push(c.status);
+    if (i === selectedIdx) cls.push("sel");
+    if (i === newBlockIdx) cls.push("newb");
+    html += `<div class="${cls.join(" ")}" data-i="${i}" style="z-index:${cmds.length - i + 1}">${blockHTML(c, i)}${i === selectedIdx ? '<button class="del" data-del="' + i + '">✕</button>' : ""}</div>`;
+  });
+  if (selectedIdx === null && !st.finished)
+    html += `<div class="blk ghost" style="z-index:0">${blockHTML(sel, cmds.length)}</div>`;
+  progEl.innerHTML = html;
+  newBlockIdx = -1;
+  const focus = progEl.querySelector(".blk.active, .blk.error, .blk.sel") || progEl.lastElementChild;
+  if (focus) focus.scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+function renderControls(){
+  document.querySelectorAll(".arr").forEach(b => b.classList.toggle("on", b.dataset.dir === sel.dir));
+  $("#num").textContent = sel.n;
+  $("#bRun").classList.toggle("hidden", mode !== "prog");
+  const note = $("#editNote");
+  if (selectedIdx !== null) {
+    note.textContent = `✏️ Виправляємо блок №${selectedIdx + 1}`;
+    note.classList.add("show");
+    $("#bAdd").textContent = "✔ Готово";
+  } else {
+    note.classList.remove("show");
+    $("#bAdd").textContent = "➕ Додати команду";
+  }
+}
+function renderAll(){ renderMapLetters(); placeHero(true); renderScroll(); renderProg(); renderControls(); }
+
+/* ================= ПОВІДОМЛЕННЯ ================= */
+function toast(msg, kind = "", ms = 4200){
+  const t = $("#toast");
+  t.innerHTML = msg;
+  t.className = "show " + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), ms);
+}
+function hideToast(){ clearTimeout(toastTimer); $("#toast").classList.remove("show"); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ================= АНІМАЦІЯ ================= */
+async function flyLetter(r, c, idx, real){
+  const src = cellEls[r][c].querySelector(".ltr");
+  const from = src.getBoundingClientRect();
+  renderScroll(idx);
+  const slot = slotsEl.children[idx];
+  const to = slot.getBoundingClientRect();
+  src.classList.add("gone");
+  cellEls[r][c].classList.add("used");
+  const f = document.createElement("div");
+  f.className = "fly" + (real ? "" : " false");
+  f.innerHTML = glyph(st.scroll[idx]);
+  Object.assign(f.style, {left:from.left + "px", top:from.top + "px", width:from.width + "px", height:from.height + "px"});
+  document.body.appendChild(f);
+  void f.offsetWidth;
+  const pad = 12;
+  Object.assign(f.style, {left:(to.left + pad) + "px", top:(to.top + pad) + "px", width:(to.width - pad * 2) + "px", height:(to.height - pad * 2) + "px"});
+  real ? SND.chime() : SND.oddChime();
+  await sleep(720);
+  f.remove();
+  slot.classList.remove("pending");
+  slot.style.animation = "none"; void slot.offsetWidth; slot.style.animation = "";
+}
+async function bumpAnim(ev){
+  const d = DIRS[st.facing];
+  hero.style.setProperty("--bx", (d.dc * 22) + "%");
+  hero.style.setProperty("--by", (d.dr * 22) + "%");
+  hero.classList.toggle("flip", st.facing === "left");
+  hero.classList.remove("bump"); void hero.offsetWidth; hero.classList.add("bump");
+  const target = cellEls[ev.r] && cellEls[ev.r][ev.c];
+  if (target) { target.classList.remove("hit"); void target.offsetWidth; target.classList.add("hit"); }
+  SND.bump();
+  await sleep(480);
+  hero.classList.remove("bump");
+  if (target) target.classList.remove("hit");
+}
+function bumpMessage(kind){
+  if (kind === "wall") return "🧱 Тут стіна! Скільки кроків було потрібно?";
+  if (kind === "ame") return "💎 Аметист закрив шлях! Пошукайте інший напрямок.";
+  return "🌿 Туди не можна — там трава! Пошукайте інший напрямок.";
+}
+
+/* Виконати одну команду з анімацією. Повертає "ok" | "bump" | "door" */
+async function animCmd(i){
+  const cmd = cmds[i];
+  cmd.status = "active"; renderProg();
+  for (let k = 0; k < cmd.n; k++) {
+    const ev = tryStep(st, cmd.dir);
+    if (!ev.ok) {
+      cmd.status = "error"; renderProg();
+      await bumpAnim(ev);
+      cmd.bumpKind = ev.kind;
+      return "bump";
+    }
+    placeHero(false);
+    hero.classList.remove("hop"); void hero.offsetWidth; hero.classList.add("hop");
+    SND.step();
+    await sleep(STEP_MS);
+    if (ev.letter) {
+      await flyLetter(ev.r, ev.c, st.scroll.length - 1, ev.real);
+      if (ev.real) toast(`✨ Чарівна літера <b>${ev.letter}</b>!`, "good", 1800);
+      else toast("🤔 Хм… така літера вже не схожа на пароль. Можливо, це глухий кут?", "", 5200);
+    }
+    if (ev.door) { cmd.status = "done"; renderProg(); return "door"; }
+  }
+  cmd.status = "done"; renderProg();
+  return "ok";
+}
+
+/* Миттєве перевідтворення стану (для «Прибрати останню» у покроковому режимі) */
+function replayInstant(){
+  st = freshState();
+  for (const cmd of cmds) {
+    cmd.status = "done";
+    for (let k = 0; k < cmd.n; k++) {
+      const ev = tryStep(st, cmd.dir);
+      if (!ev.ok) { cmd.status = "error"; break; }
+    }
+  }
+  renderAll();
+}
+
+/* ================= ДІЇ ================= */
+function setDir(dir){
+  if (busy) return;
+  sel.dir = dir;
+  if (selectedIdx !== null) { cmds[selectedIdx].dir = dir; cmds[selectedIdx].status = ""; }
+  SND.click(); renderControls(); renderProg();
+}
+function setN(n){
+  if (busy) return;
+  sel.n = Math.max(1, Math.min(9, n));
+  if (selectedIdx !== null) { cmds[selectedIdx].n = sel.n; cmds[selectedIdx].status = ""; }
+  SND.click(); renderControls(); renderProg();
+}
+async function addCommand(){
+  if (busy || st.finished) return;
+  if (selectedIdx !== null) { selectedIdx = null; SND.click(); renderControls(); renderProg(); return; }
+  cmds.push({dir:sel.dir, n:sel.n, status:""});
+  newBlockIdx = cmds.length - 1;
+  SND.click();
+  if (mode === "step") {
+    hideToast();
+    busy = true; updateBusy();
+    const res = await animCmd(cmds.length - 1);
+    busy = false; updateBusy();
+    if (res === "bump") toast(bumpMessage(cmds[cmds.length - 1].bumpKind) + "<br><small>Натисніть «✕ Прибрати останню» і спробуйте ще.</small>", "bad", 6000);
+    if (res === "door") await finale();
+  } else {
+    renderProg();
+  }
+}
+function undo(){
+  if (busy || st.finished || !cmds.length) return;
+  hideToast();
+  cmds.pop();
+  selectedIdx = null;
+  SND.click();
+  if (mode === "step") replayInstant();
+  else { cmds.forEach(c => c.status = ""); st = freshState(); renderAll(); }
+}
+function deleteBlock(i){
+  if (busy) return;
+  cmds.splice(i, 1);
+  selectedIdx = null;
+  cmds.forEach(c => c.status = "");
+  SND.click(); renderProg(); renderControls();
+}
+function selectBlock(i){
+  if (busy || mode !== "prog" || st.finished) return;
+  if (selectedIdx === i) selectedIdx = null;
+  else { selectedIdx = i; sel.dir = cmds[i].dir; sel.n = cmds[i].n; }
+  SND.click(); renderProg(); renderControls();
+}
+async function runProgram(){
+  if (busy || mode !== "prog") return;
+  if (!cmds.length) { toast("Спочатку додайте команди! 🧩", "", 3000); return; }
+  selectedIdx = null;
+  hideToast(); closeBanner(); restoreWorldVisuals();
+  st = freshState();
+  cmds.forEach(c => c.status = "");
+  renderAll();
+  busy = true; updateBusy();
+  await sleep(350);
+  let res = "ok";
+  for (let i = 0; i < cmds.length; i++) {
+    res = await animCmd(i);
+    if (res === "bump") {
+      busy = false; updateBusy();
+      selectedIdx = i; sel.dir = cmds[i].dir; sel.n = cmds[i].n;
+      cmds[i].status = "error";
+      renderProg(); renderControls();
+      toast(bumpMessage(cmds[i].bumpKind) + `<br><small>Виправте блок №${i + 1} і натисніть «▶ Запуск».</small>`, "bad", 7000);
+      return;
+    }
+    if (res === "door") break;
+    await sleep(120);
+  }
+  busy = false; updateBusy();
+  if (res === "door") await finale();
+  else toast("Програма закінчилась. Куди далі? 🤔", "", 4000);
+}
+function updateBusy(){
+  document.querySelectorAll("#ctrlBox button, #bHint, #mStep, #mProg").forEach(b => b.disabled = busy);
+}
+function resetGame(keepProgram){
+  if (busy) return;
+  hideToast(); closeBanner(); restoreWorldVisuals();
+  st = freshState();
+  selectedIdx = null;
+  if (mode === "step" && !keepProgram) cmds = [];
+  cmds.forEach(c => c.status = "");
+  renderAll();
+}
+function setMode(m){
+  if (busy || m === mode) return;
+  mode = m;
+  $("#mStep").classList.toggle("on", m === "step");
+  $("#mProg").classList.toggle("on", m === "prog");
+  cmds = [];
+  resetGame();
+  SND.click();
+  toast(m === "step" ? "👣 Кожна команда виконується одразу!" : "📜 Продиктуйте весь маршрут, потім «▶ Запуск»!", "", 3500);
+}
+function showHint(){
+  if (busy || st.finished) return;
+  let target = null;
+  for (const d of ["1", "2", "3", "4", "5"]) {
+    for (let r = 0; r < ROWS && !target; r++) {
+      const c = MAP[r].indexOf(d);
+      if (c >= 0 && !st.taken.has(r + "," + c)) target = {r, c};
+    }
+    if (target) break;
+  }
+  if (!target) target = DOOR;
+  const el = cellEls[target.r][target.c];
+  el.classList.add("hint");
+  tone(880, 0.15, "sine", 0.1); tone(1175, 0.2, "sine", 0.08, 0.12);
+  setTimeout(() => el.classList.remove("hint"), 3000);
+}
+
+/* ================= ФІНАЛ ================= */
+async function finale(){
+  st.finished = true;
+  renderProg();
+  const word = st.scroll.join("");
+  const hasFalse = st.scroll.some(ch => !PASSWORD.includes(ch));
+  await sleep(300);
+  if (word === PASSWORD) {
+    $("#scrollBox").classList.add("ok");
+    SND.fanfare();
+    mazeEl.querySelectorAll(".t-wall, .t-ame").forEach(el => {
+      const i = [...mazeEl.children].indexOf(el);
+      const r = Math.floor(i / COLS), c = i % COLS;
+      el.querySelector(".face").style.animationDelay = ((Math.abs(r - DOOR.r) + Math.abs(c - DOOR.c)) * 45) + "ms";
+      el.classList.add("fall");
+    });
+    await sleep(500);
+    cellEls[DOOR.r][DOOR.c].classList.add("open");
+    await sleep(1300);
+    showBanner("win",
+      `<h2>🔓 Пароль правильний: АРХІВ!</h2><p>Шлях до Архіву мудрості відкрито!</p>
+       <div class="sum">Кроків: ${st.steps}, команд: ${cmds.length}</div><br>
+       <button class="btn" id="bAgain">🔁 Грати знову</button>`);
+    confetti();
+  } else {
+    SND.fail();
+    const msg = hasFalse
+      ? "У паролі зайві літери! Пройдіть шлях без глухих кутів"
+      : "Пароль ще не зібрано! Знайдіть усі літери";
+    showBanner("fail",
+      `<h2>🔒 Двері зачинені</h2><p>${msg}</p>
+       <p style="font-size:26px">У сувої: <b>${word || "—"}</b></p><br>
+       <button class="btn" id="bAgain">🔁 Спробувати ще</button>`);
+  }
+}
+function showBanner(kind, html){
+  const b = $("#banner");
+  b.className = kind; b.innerHTML = html;
+  void b.offsetWidth; b.classList.add("show");
+  $("#bAgain").onclick = () => resetGame(mode === "prog");
+}
+function closeBanner(){ $("#banner").className = ""; }
+
+/* Конфетті */
+function confetti(){
+  const cv = $("#confetti"), ctx = cv.getContext("2d");
+  cv.width = innerWidth; cv.height = innerHeight;
+  const colors = ["#ffcf4a", "#5ee6ff", "#c06bff", "#ff6b6b", "#7ee081", "#ffffff"];
+  const parts = Array.from({length:260}, () => ({
+    x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.6,
+    vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 4,
+    s: 8 + Math.random() * 10, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.3,
+    c: colors[Math.floor(Math.random() * colors.length)]
+  }));
+  const t0 = performance.now();
+  (function frame(t){
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    parts.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.a += p.va;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      ctx.restore();
+    });
+    if (t - t0 < 6500) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, cv.width, cv.height);
+  })(t0);
+}
+
+/* ================= ПОДІЇ ================= */
+document.querySelectorAll(".arr").forEach(b => {
+  const d = DIRS[b.dataset.dir];
+  b.innerHTML = `${ARROW_SVG(d.rot)}<span>${d.label}</span>`;
+  b.onclick = () => setDir(b.dataset.dir);
+});
+$("#bMinus").onclick = () => setN(sel.n - 1);
+$("#bPlus").onclick = () => setN(sel.n + 1);
+$("#bAdd").onclick = addCommand;
+$("#bUndo").onclick = undo;
+$("#bRun").onclick = runProgram;
+$("#bReset").onclick = () => resetGame(false);
+$("#bHint").onclick = showHint;
+$("#mStep").onclick = () => setMode("step");
+$("#mProg").onclick = () => setMode("prog");
+$("#bMute").onclick = () => { muted = !muted; $("#bMute").textContent = muted ? "🔇" : "🔊"; if (!muted) SND.click(); };
+$("#bFast").onclick = () => { $("#answer").classList.remove("show"); $("#bAnswer").classList.remove("hidden"); $("#modalBg").classList.add("show"); };
+$("#bAnswer").onclick = () => { $("#answer").classList.add("show"); $("#bAnswer").classList.add("hidden"); SND.chime(); };
+$("#mClose").onclick = () => $("#modalBg").classList.remove("show");
+$("#modalBg").onclick = e => { if (e.target.id === "modalBg") $("#modalBg").classList.remove("show"); };
+progEl.addEventListener("click", e => {
+  const del = e.target.closest("[data-del]");
+  if (del) { e.stopPropagation(); deleteBlock(+del.dataset.del); return; }
+  const blk = e.target.closest(".blk.cmd");
+  if (blk) selectBlock(+blk.dataset.i);
+});
+/* кнопки не тримають фокус, щоб Enter/пробіл не натискали їх випадково */
+document.addEventListener("click", e => { const b = e.target.closest("button"); if (b) b.blur(); });
+
+document.addEventListener("keydown", e => {
+  if ($("#modalBg").classList.contains("show")) {
+    if (e.key === "Escape") $("#modalBg").classList.remove("show");
+    return;
+  }
+  const keyDir = {ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right"}[e.key];
+  let handled = true;
+  if (keyDir) setDir(keyDir);
+  else if (/^(Digit|Numpad)[1-9]$/.test(e.code)) setN(+e.code.slice(-1));
+  else if (e.key === "Enter") { if ($("#banner").classList.contains("show")) $("#bAgain").click(); else addCommand(); }
+  else if (e.key === "Backspace") undo();
+  else if (e.code === "KeyR") resetGame(false);
+  else if (e.code === "Space" && mode === "prog") runProgram();
+  else if (e.key === "Escape") { if (selectedIdx !== null) { selectedIdx = null; renderProg(); renderControls(); } }
+  else handled = false;
+  if (handled) e.preventDefault();
+});
+window.addEventListener("resize", () => { fitMaze(); renderScroll(); });
+
+/* ================= СТАРТ ================= */
+buildMaze();
+st = freshState();
+fitMaze();
+renderAll();
+setTimeout(() => toast("🐝 Бджола принесла карту! Диктуйте: напрямок і скільки кроків.", "", 5000), 400);
+</script>
+</body>
+</html>
